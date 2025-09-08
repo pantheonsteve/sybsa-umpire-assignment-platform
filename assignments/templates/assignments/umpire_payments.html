@@ -8,40 +8,40 @@
 <!-- Weekly Payment Summary Grid -->
 <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
     <h3 style="color: white;">Weekly Payment Summary</h3>
-    <table class="table" style="color: white;">
+    <table style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr style="border-bottom: 2px solid rgba(255,255,255,0.3);">
-                <th style="color: white;">Week</th>
-                <th class="text-center" style="color: white;">Games</th>
-                <th class="text-center" style="color: white;">Assignments</th>
-                <th class="text-center" style="color: white;">Umpires</th>
-                <th class="text-right" style="color: white;">Total Payments</th>
-                <th class="text-right" style="color: white;">Avg/Game</th>
+                <th style="color: white; padding: 0.75rem; text-align: left; background: transparent; border: none;">Week</th>
+                <th style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">Games</th>
+                <th style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">Assignments</th>
+                <th style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">Umpires</th>
+                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Total Payments</th>
+                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Avg/Game</th>
             </tr>
         </thead>
         <tbody>
             {% for week in weekly_totals %}
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.2);">
-                <td style="color: white;">{{ week.week_start|date:"M d" }} - {{ week.week_end|date:"M d, Y" }}</td>
-                <td class="text-center" style="color: white;">{{ week.games_count }}</td>
-                <td class="text-center" style="color: white;">{{ week.assignments_count }}</td>
-                <td class="text-center" style="color: white;">{{ week.umpires_count }}</td>
-                <td class="text-right" style="color: white; font-weight: bold;">${{ week.total_amount|floatformat:2 }}</td>
-                <td class="text-right" style="color: white;">${{ week.avg_per_game|floatformat:2 }}</td>
+                <td style="color: white; padding: 0.75rem; background: transparent; border: none;">{{ week.week_start|date:"M d" }} - {{ week.week_end|date:"M d, Y" }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">{{ week.games_count }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">{{ week.assignments_count }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">{{ week.umpires_count }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: right; font-weight: bold; background: transparent; border: none;">${{ week.total_amount|floatformat:2 }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">${{ week.avg_per_game|floatformat:2 }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center" style="color: white;">No payment data available yet</td>
+                <td colspan="6" style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">No payment data available yet</td>
             </tr>
             {% endfor %}
         </tbody>
         {% if weekly_totals %}
         <tfoot>
             <tr style="border-top: 2px solid rgba(255,255,255,0.3); font-weight: bold;">
-                <td style="color: white;">SEASON TOTALS</td>
-                <td colspan="3" style="color: white;"></td>
-                <td class="text-right" style="color: white; font-size: 1.2rem;">${{ grand_total_owed|floatformat:2 }}</td>
-                <td style="color: white;"></td>
+                <td style="color: white; padding: 0.75rem; background: transparent; border: none;">SEASON TOTALS</td>
+                <td colspan="3" style="color: white; padding: 0.75rem; background: transparent; border: none;"></td>
+                <td style="color: white; padding: 0.75rem; text-align: right; font-size: 1.2rem; background: transparent; border: none;">${{ grand_total_owed|floatformat:2 }}</td>
+                <td style="color: white; padding: 0.75rem; background: transparent; border: none;"></td>
             </tr>
         </tfoot>
         {% endif %}

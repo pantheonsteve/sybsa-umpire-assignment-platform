@@ -82,12 +82,15 @@ class Umpire(models.Model):
     phone = models.CharField(validators=[phone_regex], max_length=17)
     adult = models.BooleanField(default=False)
     patched = models.BooleanField(default=False)
+    is_assigner = models.BooleanField(default=False, help_text="External assigner service - can be booked for multiple games at same time")
     
     class Meta:
         verbose_name = "Umpire"
         verbose_name_plural = "Umpires"
     
     def __str__(self):
+        if self.is_assigner:
+            return f"{self.first_name} {self.last_name} (Assigner)"
         return f"{self.first_name} {self.last_name}"
 
 
@@ -121,6 +124,12 @@ class Game(models.Model):
     
     def __str__(self):
         return f"{self.home_team} vs {self.away_team} - {self.date} {self.time}"
+    
+    @property
+    def time_sort_order(self):
+        """Return a sortable time value for chronological ordering."""
+        time_order = {'8:00': 1, '10:15': 2, '12:30': 3, '2:45': 4}
+        return time_order.get(self.time, 99)
 
 
 class UmpireAssignment(models.Model):

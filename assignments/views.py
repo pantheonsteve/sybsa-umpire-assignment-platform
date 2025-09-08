@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from django.db.models import Sum, Q, Count
+from django.db.models import Sum, Q, Count, Case, When, IntegerField
 from django.db import transaction
 from datetime import datetime, timedelta, date
 from decimal import Decimal
@@ -51,9 +51,19 @@ def weekly_schedule(request):
     end_of_week = start_of_week + timedelta(days=6)
     
     # Get games for the week
+    # Add time_order annotation for proper chronological sorting
     games = Game.objects.filter(
         date__gte=start_of_week,
         date__lte=end_of_week
+    ).annotate(
+        time_order=Case(
+            When(time='8:00', then=1),
+            When(time='10:15', then=2),
+            When(time='12:30', then=3),
+            When(time='2:45', then=4),
+            default=99,
+            output_field=IntegerField()
+        )
     ).select_related(
         'home_team', 'away_team', 'home_team__town', 'away_team__town'
     ).prefetch_related(
@@ -76,11 +86,11 @@ def weekly_schedule(request):
     
     # Apply sorting
     if sort_by == 'time':
-        # Sort primarily by time, then by date and field
+        # Sort primarily by time (chronologically), then by date and field
         if sort_order == 'desc':
-            games = games.order_by('-time', 'date', 'field')
+            games = games.order_by('-time_order', 'date', 'field')
         else:
-            games = games.order_by('time', 'date', 'field')
+            games = games.order_by('time_order', 'date', 'field')
         order_field = None  # Skip the additional ordering below
     elif sort_by == 'field':
         order_field = 'field'
@@ -94,18 +104,15 @@ def weekly_schedule(request):
         games = games.annotate(umpire_count=Count('assignments'))
         order_field = 'umpire_count'
     elif sort_by == 'datetime':
-        # For datetime, we need to order by both date and time
+        # For datetime, we need to order by both date and time (chronologically)
         if sort_order == 'desc':
-            games = games.order_by('-date', '-time', '-field')
+            games = games.order_by('-date', '-time_order', '-field')
         else:
-            games = games.order_by('date', 'time', 'field')
+            games = games.order_by('date', 'time_order', 'field')
         order_field = None  # Skip the additional ordering below
     else:
-        # Default case - should not happen but fall back to time
-        if sort_order == 'desc':
-            games = games.order_by('-time', 'date', 'field')
-        else:
-            games = games.order_by('time', 'date', 'field')
+        # Default case - order by date then time chronologically
+        games = games.order_by('date', 'time_order', 'field')
         order_field = None
     
     # Apply order direction if we have an order field
@@ -568,8 +575,17 @@ def unassigned_games(request):
     sort_order = request.GET.get('order', 'asc')
     
     # Start with games that have fewer than 2 umpires assigned
+    # Add time_order annotation for proper chronological sorting
     games = Game.objects.annotate(
-        umpire_count=Count('assignments')
+        umpire_count=Count('assignments'),
+        time_order=Case(
+            When(time='8:00', then=1),
+            When(time='10:15', then=2),
+            When(time='12:30', then=3),
+            When(time='2:45', then=4),
+            default=99,
+            output_field=IntegerField()
+        )
     ).filter(
         Q(umpire_count=0) | Q(umpire_count=1)
     ).select_related(
@@ -590,7 +606,7 @@ def unassigned_games(request):
     
     # Apply sorting
     if sort_by == 'time':
-        order_field = 'time'
+        order_field = 'time_order'  # Use chronological time ordering
     elif sort_by == 'field':
         order_field = 'field'
     elif sort_by == 'home':
@@ -599,19 +615,19 @@ def unassigned_games(request):
         order_field = 'away_team__town__name'
     elif sort_by == 'status':
         order_field = 'umpire_count'
-    else:  # datetime (default)
+    else:  # datetime (default) - chronological ordering
         order_field = None
         if sort_order == 'desc':
-            games = games.order_by('-date', '-time', '-field')
+            games = games.order_by('-date', '-time_order', '-field')
         else:
-            games = games.order_by('date', 'time', 'field')
+            games = games.order_by('date', 'time_order', 'field')
     
     # Apply order direction if we have an order field
     if order_field:
         if sort_order == 'desc':
-            games = games.order_by(f'-{order_field}', 'date', 'time')
+            games = games.order_by(f'-{order_field}', 'date', 'time_order')
         else:
-            games = games.order_by(order_field, 'date', 'time')
+            games = games.order_by(order_field, 'date', 'time_order')
     
     # Separate fully unassigned and partially assigned games
     fully_unassigned = []
@@ -635,14 +651,18 @@ def unassigned_games(request):
             # Only include umpire if they've explicitly set availability as available or preferred
             if availability and availability.status in ['available', 'preferred']:
                 # Check if umpire is already assigned to another game at this time
-                conflicting_assignment = UmpireAssignment.objects.filter(
-                    umpire=umpire,
-                    game__date=game.date,
-                    game__time=game.time
-                ).exclude(game=game).exists()
+                # (Skip this check for Assigner umpires who can handle multiple games)
+                if not umpire.is_assigner:
+                    conflicting_assignment = UmpireAssignment.objects.filter(
+                        umpire=umpire,
+                        game__date=game.date,
+                        game__time=game.time
+                    ).exclude(game=game).exists()
+                    
+                    if conflicting_assignment:
+                        continue
                 
-                if not conflicting_assignment:
-                    available_umpires.append(umpire)
+                available_umpires.append(umpire)
         
         game_data = {
             'game': game,
@@ -718,15 +738,17 @@ def quick_assign_umpire(request, game_id):
             return redirect('unassigned_games')
         
         # Check if umpire is already assigned to another game at this time
-        conflicting_assignment = UmpireAssignment.objects.filter(
-            umpire=umpire,
-            game__date=game.date,
-            game__time=game.time
-        ).exclude(game=game).first()
-        
-        if conflicting_assignment:
-            messages.error(request, f'{umpire} is already assigned to another game at this time ({conflicting_assignment.game})')
-            return redirect('unassigned_games')
+        # (Skip this check for Assigner umpires who can handle multiple games)
+        if not umpire.is_assigner:
+            conflicting_assignment = UmpireAssignment.objects.filter(
+                umpire=umpire,
+                game__date=game.date,
+                game__time=game.time
+            ).exclude(game=game).first()
+            
+            if conflicting_assignment:
+                messages.error(request, f'{umpire} is already assigned to another game at this time ({conflicting_assignment.game})')
+                return redirect('unassigned_games')
         
         # Check how many umpires are already assigned
         current_assignments = game.assignments.count()
@@ -950,14 +972,18 @@ def edit_game(request, game_id):
         if availability and availability.status in ['available', 'preferred']:
             # Check if umpire is already assigned to another game at this time
             # (excluding the current game being edited)
-            conflicting_assignment = UmpireAssignment.objects.filter(
-                umpire=umpire,
-                game__date=game.date,
-                game__time=game.time
-            ).exclude(game=game).exists()
+            # Skip this check for Assigner umpires who can handle multiple games
+            if not umpire.is_assigner:
+                conflicting_assignment = UmpireAssignment.objects.filter(
+                    umpire=umpire,
+                    game__date=game.date,
+                    game__time=game.time
+                ).exclude(game=game).exists()
+                
+                if conflicting_assignment:
+                    continue
             
-            if not conflicting_assignment:
-                available_umpires.append(umpire)
+            available_umpires.append(umpire)
     
     umpires = available_umpires
     time_choices = Game.TIME_CHOICES
