@@ -164,6 +164,9 @@ def weekly_schedule(request):
 @admin_required
 def umpire_payments(request):
     """Display umpire payment information."""
+    from datetime import timedelta
+    from django.db.models import Q
+    
     # Get all umpires with their assignments and payments
     umpires = Umpire.objects.all().order_by('last_name', 'first_name')
     
@@ -206,8 +209,71 @@ def umpire_payments(request):
             'payment_history': payment_history,
         })
     
+    # Calculate weekly payment totals
+    # Get all games with assignments to determine week ranges
+    games_with_assignments = Game.objects.filter(
+        assignments__isnull=False
+    ).distinct().order_by('date')
+    
+    weekly_totals = []
+    if games_with_assignments.exists():
+        # Start from the first game date
+        current_date = games_with_assignments.first().date
+        # Find the start of that week (Monday)
+        week_start = current_date - timedelta(days=current_date.weekday())
+        
+        # Continue until the last game date
+        last_date = games_with_assignments.last().date
+        
+        while week_start <= last_date:
+            week_end = week_start + timedelta(days=6)
+            
+            # Calculate total payments for this week
+            week_assignments = UmpireAssignment.objects.filter(
+                game__date__gte=week_start,
+                game__date__lte=week_end
+            )
+            
+            week_total = week_assignments.aggregate(
+                total=Sum('pay_amount')
+            )['total'] or 0
+            
+            # Count games and assignments for this week
+            games_count = Game.objects.filter(
+                date__gte=week_start,
+                date__lte=week_end
+            ).count()
+            
+            assignments_count = week_assignments.count()
+            
+            # Get umpire count for this week
+            umpires_this_week = week_assignments.values('umpire').distinct().count()
+            
+            if games_count > 0:  # Only include weeks with games
+                weekly_totals.append({
+                    'week_start': week_start,
+                    'week_end': week_end,
+                    'total_amount': week_total,
+                    'games_count': games_count,
+                    'assignments_count': assignments_count,
+                    'umpires_count': umpires_this_week,
+                    'avg_per_game': week_total / games_count if games_count > 0 else 0
+                })
+            
+            # Move to next week
+            week_start += timedelta(days=7)
+    
+    # Calculate grand totals
+    grand_total_owed = sum(u['total_owed'] for u in umpire_data)
+    grand_total_paid = sum(u['total_paid'] for u in umpire_data)
+    grand_total_unpaid = sum(u['unpaid_amount'] for u in umpire_data)
+    
     context = {
         'umpire_data': umpire_data,
+        'weekly_totals': weekly_totals,
+        'grand_total_owed': grand_total_owed,
+        'grand_total_paid': grand_total_paid,
+        'grand_total_unpaid': grand_total_unpaid,
     }
     
     return render(request, 'assignments/umpire_payments.html', context)
