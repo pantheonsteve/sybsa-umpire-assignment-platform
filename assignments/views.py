@@ -568,7 +568,15 @@ def unassigned_games(request):
             
             # Only include umpire if they've explicitly set availability as available or preferred
             if availability and availability.status in ['available', 'preferred']:
-                available_umpires.append(umpire)
+                # Check if umpire is already assigned to another game at this time
+                conflicting_assignment = UmpireAssignment.objects.filter(
+                    umpire=umpire,
+                    game__date=game.date,
+                    game__time=game.time
+                ).exclude(game=game).exists()
+                
+                if not conflicting_assignment:
+                    available_umpires.append(umpire)
         
         game_data = {
             'game': game,
@@ -641,6 +649,17 @@ def quick_assign_umpire(request, game_id):
         # Check if umpire is already assigned to this game
         if UmpireAssignment.objects.filter(game=game, umpire=umpire).exists():
             messages.error(request, f'{umpire} is already assigned to this game')
+            return redirect('unassigned_games')
+        
+        # Check if umpire is already assigned to another game at this time
+        conflicting_assignment = UmpireAssignment.objects.filter(
+            umpire=umpire,
+            game__date=game.date,
+            game__time=game.time
+        ).exclude(game=game).first()
+        
+        if conflicting_assignment:
+            messages.error(request, f'{umpire} is already assigned to another game at this time ({conflicting_assignment.game})')
             return redirect('unassigned_games')
         
         # Check how many umpires are already assigned
@@ -851,7 +870,7 @@ def edit_game(request, game_id):
     # First get all umpires
     all_umpires = Umpire.objects.all().order_by('last_name', 'first_name')
     
-    # Filter to only those who are available (or have no availability set)
+    # Filter to only those who are available and not already assigned at this time
     available_umpires = []
     for umpire in all_umpires:
         # Check if umpire has set availability for this date/time
@@ -863,7 +882,16 @@ def edit_game(request, game_id):
         
         # Only include umpire if they've explicitly set availability as available or preferred
         if availability and availability.status in ['available', 'preferred']:
-            available_umpires.append(umpire)
+            # Check if umpire is already assigned to another game at this time
+            # (excluding the current game being edited)
+            conflicting_assignment = UmpireAssignment.objects.filter(
+                umpire=umpire,
+                game__date=game.date,
+                game__time=game.time
+            ).exclude(game=game).exists()
+            
+            if not conflicting_assignment:
+                available_umpires.append(umpire)
     
     umpires = available_umpires
     time_choices = Game.TIME_CHOICES
