@@ -1,0 +1,299 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Bulk Create Games - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Bulk Create Games</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="card" style="background-color: {% if message.tags == 'success' %}#d4edda{% elif message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'success' %}#c3e6cb{% elif message.tags == 'error' %}#f5c6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'success' %}#155724{% elif message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card">
+    <p>Create multiple games at once by filling out the form below. Click "Add Another Game" to add more rows.</p>
+    
+    <form method="post" id="bulk-games-form">
+        {% csrf_token %}
+        
+        <table class="table" id="games-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Date</th>
+                    <th style="width: 12%;">Time</th>
+                    <th style="width: 10%;">Field</th>
+                    <th style="width: 25%;">Away Team</th>
+                    <th style="width: 25%;">Home Team</th>
+                    <th style="width: 8%;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="games-tbody">
+                <!-- Initial row -->
+                <tr class="game-row">
+                    <td>
+                        <input type="date" name="date[]" class="form-input" required>
+                    </td>
+                    <td>
+                        <select name="time[]" class="form-input" required>
+                            <option value="">Select Time</option>
+                            {% for value, display in time_choices %}
+                                <option value="{{ value }}">{{ display }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="field[]" class="form-input" required>
+                            <option value="">Field</option>
+                            {% for value, display in field_choices %}
+                                <option value="{{ value }}">{{ display }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="home_team[]" class="form-input team-select" required>
+                            <option value="">Select Home Team</option>
+                            {% for team in teams %}
+                                <option value="{{ team.id }}" data-town="{{ team.town }}" data-level="{{ team.level }}">
+                                    {{ team.display }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="away_team[]" class="form-input team-select" required>
+                            <option value="">Select Away Team</option>
+                            {% for team in teams %}
+                                <option value="{{ team.id }}" data-town="{{ team.town }}" data-level="{{ team.level }}">
+                                    {{ team.display }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-secondary remove-row" style="padding: 0.25rem 0.5rem;">Remove</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+            <button type="button" id="add-row" class="btn">+ Add Another Game</button>
+            <button type="submit" class="btn" style="background-color: #27ae60;">Create Games</button>
+            <button type="button" id="clear-all" class="btn btn-secondary">Clear All</button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="background-color: #f8f9fa; margin-top: 2rem;">
+    <h3>Quick Actions</h3>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+        <button type="button" id="add-5-rows" class="btn btn-secondary">Add 5 Rows</button>
+        <button type="button" id="set-today" class="btn btn-secondary">Set All Dates to Today</button>
+        <button type="button" id="set-tomorrow" class="btn btn-secondary">Set All Dates to Tomorrow</button>
+        <button type="button" id="set-saturday" class="btn btn-secondary">Set All Dates to Next Saturday</button>
+    </div>
+</div>
+
+<div class="card" style="background-color: #fff3cd; border-color: #ffeaa7; margin-top: 1rem;">
+    <h4 style="color: #856404;">Tips</h4>
+    <ul style="color: #856404;">
+        <li>Games must have different home and away teams</li>
+        <li>Each date/time/field combination must be unique</li>
+        <li>Use the Tab key to quickly move between fields</li>
+        <li>You can paste data from a spreadsheet into the date fields</li>
+    </ul>
+</div>
+
+<style>
+.form-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.team-select {
+    font-size: 0.85rem;
+}
+
+.game-row:hover {
+    background-color: #f8f9fa;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tbody = document.getElementById('games-tbody');
+    const addRowBtn = document.getElementById('add-row');
+    const add5RowsBtn = document.getElementById('add-5-rows');
+    const clearAllBtn = document.getElementById('clear-all');
+    const setTodayBtn = document.getElementById('set-today');
+    const setTomorrowBtn = document.getElementById('set-tomorrow');
+    const setSaturdayBtn = document.getElementById('set-saturday');
+    
+    // Template for new row
+    function createNewRow() {
+        const row = document.createElement('tr');
+        row.className = 'game-row';
+        row.innerHTML = `
+            <td>
+                <input type="date" name="date[]" class="form-input" required>
+            </td>
+            <td>
+                <select name="time[]" class="form-input" required>
+                    <option value="">Select Time</option>
+                    {% for value, display in time_choices %}
+                        <option value="{{ value }}">{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <select name="field[]" class="form-input" required>
+                    <option value="">Field</option>
+                    {% for value, display in field_choices %}
+                        <option value="{{ value }}">{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <select name="home_team[]" class="form-input team-select" required>
+                    <option value="">Select Home Team</option>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" data-town="{{ team.town }}" data-level="{{ team.level }}">
+                            {{ team.display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <select name="away_team[]" class="form-input team-select" required>
+                    <option value="">Select Away Team</option>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" data-town="{{ team.town }}" data-level="{{ team.level }}">
+                            {{ team.display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <button type="button" class="btn btn-secondary remove-row" style="padding: 0.25rem 0.5rem;">Remove</button>
+            </td>
+        `;
+        return row;
+    }
+    
+    // Add single row
+    addRowBtn.addEventListener('click', function() {
+        tbody.appendChild(createNewRow());
+    });
+    
+    // Add 5 rows
+    add5RowsBtn.addEventListener('click', function() {
+        for (let i = 0; i < 5; i++) {
+            tbody.appendChild(createNewRow());
+        }
+    });
+    
+    // Clear all rows except first
+    clearAllBtn.addEventListener('click', function() {
+        if (confirm('Clear all games? This cannot be undone.')) {
+            const rows = tbody.querySelectorAll('.game-row');
+            rows.forEach((row, index) => {
+                if (index === 0) {
+                    // Clear first row
+                    row.querySelectorAll('input, select').forEach(input => {
+                        input.value = '';
+                    });
+                } else {
+                    // Remove other rows
+                    row.remove();
+                }
+            });
+        }
+    });
+    
+    // Remove row handler
+    tbody.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-row')) {
+            const rows = tbody.querySelectorAll('.game-row');
+            if (rows.length > 1) {
+                e.target.closest('.game-row').remove();
+            } else {
+                // Just clear the row if it's the last one
+                const row = e.target.closest('.game-row');
+                row.querySelectorAll('input, select').forEach(input => {
+                    input.value = '';
+                });
+            }
+        }
+    });
+    
+    // Date helpers
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    function getNextSaturday() {
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const daysUntilSaturday = (6 - dayOfWeek + 7) % 7 || 7;
+        const nextSaturday = new Date(today);
+        nextSaturday.setDate(today.getDate() + daysUntilSaturday);
+        return nextSaturday;
+    }
+    
+    // Set all dates to today
+    setTodayBtn.addEventListener('click', function() {
+        const today = formatDate(new Date());
+        tbody.querySelectorAll('input[type="date"]').forEach(input => {
+            input.value = today;
+        });
+    });
+    
+    // Set all dates to tomorrow
+    setTomorrowBtn.addEventListener('click', function() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = formatDate(tomorrow);
+        tbody.querySelectorAll('input[type="date"]').forEach(input => {
+            input.value = tomorrowStr;
+        });
+    });
+    
+    // Set all dates to next Saturday
+    setSaturdayBtn.addEventListener('click', function() {
+        const saturday = formatDate(getNextSaturday());
+        tbody.querySelectorAll('input[type="date"]').forEach(input => {
+            input.value = saturday;
+        });
+    });
+    
+    // Form validation - check for same teams
+    document.getElementById('bulk-games-form').addEventListener('submit', function(e) {
+        const rows = tbody.querySelectorAll('.game-row');
+        let hasError = false;
+        
+        rows.forEach((row, index) => {
+            const homeTeam = row.querySelector('select[name="home_team[]"]').value;
+            const awayTeam = row.querySelector('select[name="away_team[]"]').value;
+            
+            if (homeTeam && awayTeam && homeTeam === awayTeam) {
+                alert(`Row ${index + 1}: Home and away teams cannot be the same`);
+                hasError = true;
+            }
+        });
+        
+        if (hasError) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Unassigned Games - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Games Needing Umpire Assignments</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="card" style="background-color: {% if message.tags == 'success' %}#d4edda{% elif message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'success' %}#c3e6cb{% elif message.tags == 'error' %}#f5c6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'success' %}#155724{% elif message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Statistics Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">Total Games</h3>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;">{{ stats.total_games }}</p>
+    </div>
+    
+    <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">Unassigned</h3>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;">{{ stats.unassigned }}</p>
+        <p style="font-size: 0.9rem; margin: 0;">Need umpires</p>
+    </div>
+    
+    <div class="card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">Partially Assigned</h3>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;">{{ stats.partially_assigned }}</p>
+        <p style="font-size: 0.9rem; margin: 0;">Need 1 more umpire</p>
+    </div>
+    
+    <div class="card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">Fully Assigned</h3>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;">{{ stats.fully_assigned }}</p>
+        <p style="font-size: 0.9rem; margin: 0;">{{ stats.coverage_percent }}% coverage</p>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="background-color: #f8f9fa;">
+    <form method="get" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
+        <div>
+            <label for="filter_date">Date:</label>
+            <input type="date" name="date" id="filter_date" value="{{ filter_date }}" 
+                   style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        <div>
+            <label for="filter_field">Field:</label>
+            <select name="field" id="filter_field" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">All Fields</option>
+                <option value="A" {% if filter_field == 'A' %}selected{% endif %}>Field A</option>
+                <option value="B" {% if filter_field == 'B' %}selected{% endif %}>Field B</option>
+                <option value="C" {% if filter_field == 'C' %}selected{% endif %}>Field C</option>
+                <option value="D" {% if filter_field == 'D' %}selected{% endif %}>Field D</option>
+                <option value="E" {% if filter_field == 'E' %}selected{% endif %}>Field E</option>
+            </select>
+        </div>
+        <div>
+            <label for="filter_level">Level:</label>
+            <select name="level" id="filter_level" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">All Levels</option>
+                <option value="AAA" {% if filter_level == 'AAA' %}selected{% endif %}>AAA</option>
+                <option value="Majors" {% if filter_level == 'Majors' %}selected{% endif %}>Majors</option>
+                <option value="Minors" {% if filter_level == 'Minors' %}selected{% endif %}>Minors</option>
+            </select>
+        </div>
+        <button type="submit" class="btn">Filter</button>
+        <a href="{% url 'unassigned_games' %}" class="btn btn-secondary">Clear</a>
+    </form>
+</div>
+
+<!-- Fully Unassigned Games -->
+{% if fully_unassigned %}
+<div class="card">
+    <h3 style="color: #dc3545;">🚨 Fully Unassigned Games ({{ fully_unassigned|length }})</h3>
+    <p style="color: #666;">These games have no umpires assigned yet.</p>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Field</th>
+                <th>Home Team</th>
+                <th>Away Team</th>
+                <th>Quick Assign</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in fully_unassigned %}
+            <tr {% if user.is_staff %}style="cursor: pointer;" onclick="if(!event.target.closest('form,select,button')) window.location.href='{% url 'edit_game' item.game.id %}'"{% endif %}>
+                <td>{{ item.game.date|date:"M d, Y" }}</td>
+                <td>{{ item.game.get_time_display }}</td>
+                <td>{{ item.game.get_field_display }}</td>
+                <td>{{ item.game.home_team }}</td>
+                <td>{{ item.game.away_team }}</td>
+                <td>
+                    <form method="post" action="{% url 'quick_assign_umpire' item.game.id %}" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        {% csrf_token %}
+                        <select name="umpire_id" required style="padding: 0.25rem; font-size: 0.9rem;">
+                            <option value="">Select Umpire</option>
+                            {% for umpire in item.available_umpires %}
+                            <option value="{{ umpire.id }}">
+                                {{ umpire }}
+                                {% if umpire.patched %}[P]{% endif %}
+                                {% if umpire.adult %}[A]{% endif %}
+                                (Available)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <select name="position" required style="padding: 0.25rem; font-size: 0.9rem;">
+                            <option value="">Position</option>
+                            <option value="solo">Solo</option>
+                            <option value="plate">Plate</option>
+                            <option value="base">Base</option>
+                        </select>
+                        <button type="submit" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.9rem;">Assign</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Partially Assigned Games -->
+{% if partially_assigned %}
+<div class="card">
+    <h3 style="color: #ffc107;">⚠️ Partially Assigned Games ({{ partially_assigned|length }})</h3>
+    <p style="color: #666;">These games need one more umpire.</p>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Field</th>
+                <th>Home Team</th>
+                <th>Away Team</th>
+                <th>Current Assignment</th>
+                <th>Add Second Umpire</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in partially_assigned %}
+            <tr {% if user.is_staff %}style="cursor: pointer;" onclick="if(!event.target.closest('form,select,button')) window.location.href='{% url 'edit_game' item.game.id %}'"{% endif %}>
+                <td>{{ item.game.date|date:"M d, Y" }}</td>
+                <td>{{ item.game.get_time_display }}</td>
+                <td>{{ item.game.get_field_display }}</td>
+                <td>{{ item.game.home_team }}</td>
+                <td>{{ item.game.away_team }}</td>
+                <td>
+                    {% for assignment in item.assignments %}
+                    <div>
+                        {{ assignment.umpire }}
+                        <span class="badge {% if assignment.position == 'solo' %}badge-success{% elif assignment.position == 'plate' %}badge-info{% else %}badge-warning{% endif %}">
+                            {{ assignment.get_position_display }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for assignment in item.assignments %}
+                        {% if assignment.position != 'solo' %}
+                        <form method="post" action="{% url 'quick_assign_umpire' item.game.id %}" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            {% csrf_token %}
+                            <select name="umpire_id" required style="padding: 0.25rem; font-size: 0.9rem;">
+                                <option value="">Select Umpire</option>
+                                {% for umpire in item.available_umpires %}
+                                <option value="{{ umpire.id }}">
+                                    {{ umpire }}
+                                    {% if umpire.patched %}[P]{% endif %}
+                                    {% if umpire.adult %}[A]{% endif %}
+                                    (Available)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <select name="position" required style="padding: 0.25rem; font-size: 0.9rem;">
+                                {% if assignment.position == 'plate' %}
+                                <option value="base">Base</option>
+                                {% else %}
+                                <option value="plate">Plate</option>
+                                {% endif %}
+                            </select>
+                            <button type="submit" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.9rem;">Assign</button>
+                        </form>
+                        {% else %}
+                        <span style="color: #666; font-size: 0.9rem;">Solo umpire - fully assigned</span>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if not fully_unassigned and not partially_assigned %}
+<div class="card" style="background-color: #d4edda; border-color: #c3e6cb;">
+    <h3 style="color: #155724;">✅ All Games Are Fully Assigned!</h3>
+    <p style="color: #155724;">Great job! Every game has the required umpires assigned.</p>
+</div>
+{% endif %}
+
+<div class="card" style="background-color: #f8f9fa; margin-top: 2rem;">
+    <h4>Legend</h4>
+    <p><strong>[P]</strong> = Patched Umpire | <strong>[A]</strong> = Adult Umpire</p>
+    <p><strong>Solo</strong> = Single umpire handles entire game | <strong>Plate</strong> = Home plate umpire | <strong>Base</strong> = Base umpire</p>
+    {% if user.is_staff %}<p style="margin-top: 0.5rem;"><strong>Tip:</strong> Click on any game row to edit game details and umpire assignments</p>{% endif %}
+</div>
+
+<style>
+{% if user.is_staff %}
+tbody tr:hover {
+    background-color: #e8f4f8;
+    transition: background-color 0.2s;
+}
+{% endif %}
+</style>
+{% endblock %}

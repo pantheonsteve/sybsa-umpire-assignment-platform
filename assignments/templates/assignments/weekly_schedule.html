@@ -1,0 +1,285 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Weekly Schedule - Umpire Assigner{% endblock %}
+
+{% block content %}
+<div class="week-navigation">
+    <a href="?week={{ prev_week }}&sort={{ sort_by }}&order={{ sort_order }}&view={% if show_by_date %}by_date{% else %}list{% endif %}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" class="btn btn-secondary">← Previous Week</a>
+    <h2>Schedule for {{ start_of_week|date:"M d" }} - {{ end_of_week|date:"M d, Y" }}</h2>
+    <a href="?week={{ next_week }}&sort={{ sort_by }}&order={{ sort_order }}&view={% if show_by_date %}by_date{% else %}list{% endif %}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" class="btn btn-secondary">Next Week →</a>
+</div>
+
+<div class="card" style="background-color: #f8f9fa; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <label style="margin-right: 1rem;">View:</label>
+            <a href="?week={{ week_offset }}&view=by_date&sort={{ sort_by }}&order={{ sort_order }}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" 
+               class="btn btn-secondary" style="padding: 0.25rem 0.5rem; {% if show_by_date %}background-color: #3498db;{% endif %}">By Date</a>
+            <a href="?week={{ week_offset }}&view=list&sort={{ sort_by }}&order={{ sort_order }}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" 
+               class="btn btn-secondary" style="padding: 0.25rem 0.5rem; {% if not show_by_date %}background-color: #3498db;{% endif %}">All Games</a>
+        </div>
+        {% if not show_by_date %}
+        <div style="font-size: 0.9rem;">
+            Click column headers to sort
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Filters -->
+    <form method="get" style="border-top: 1px solid #dee2e6; padding-top: 1rem;">
+        <input type="hidden" name="week" value="{{ week_offset }}">
+        <input type="hidden" name="view" value="{% if show_by_date %}by_date{% else %}list{% endif %}">
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+        <input type="hidden" name="order" value="{{ sort_order }}">
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem;">
+            <div>
+                <label for="filter_date" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Date:</label>
+                <input type="date" name="filter_date" id="filter_date" value="{{ filter_date }}" 
+                       style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+            </div>
+            
+            <div>
+                <label for="filter_time" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Time:</label>
+                <select name="filter_time" id="filter_time" 
+                        style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                    <option value="">All Times</option>
+                    {% for value, display in time_choices %}
+                        <option value="{{ value }}" {% if filter_time == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="filter_field" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Field:</label>
+                <select name="filter_field" id="filter_field" 
+                        style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                    <option value="">All Fields</option>
+                    {% for value, display in field_choices %}
+                        <option value="{{ value }}" {% if filter_field == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="filter_home_team" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Home Team:</label>
+                <select name="filter_home_team" id="filter_home_team" 
+                        style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                    <option value="">All Teams</option>
+                    {% for team in all_teams %}
+                        <option value="{{ team.id }}" {% if filter_home_team == team.id|stringformat:"s" %}selected{% endif %}>
+                            {{ team }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="filter_away_team" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Away Team:</label>
+                <select name="filter_away_team" id="filter_away_team" 
+                        style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                    <option value="">All Teams</option>
+                    {% for team in all_teams %}
+                        <option value="{{ team.id }}" {% if filter_away_team == team.id|stringformat:"s" %}selected{% endif %}>
+                            {{ team }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="filter_umpire" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Umpire:</label>
+                <select name="filter_umpire" id="filter_umpire" 
+                        style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                    <option value="">All Umpires</option>
+                    {% for umpire in all_umpires %}
+                        <option value="{{ umpire.id }}" {% if filter_umpire == umpire.id|stringformat:"s" %}selected{% endif %}>
+                            {{ umpire }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn" style="padding: 0.4rem 1rem;">Apply Filters</button>
+            <a href="?week={{ week_offset }}&view={% if show_by_date %}by_date{% else %}list{% endif %}&sort={{ sort_by }}&order={{ sort_order }}" 
+               class="btn btn-secondary" style="padding: 0.4rem 1rem;">Clear Filters</a>
+        </div>
+    </form>
+</div>
+
+{% if show_by_date and games_by_date %}
+    {% for date, games in games_by_date.items %}
+    <div class="card">
+        <h3>{{ date|date:"l, F j, Y" }}</h3>
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Field</th>
+                    <th>Home Team</th>
+                    <th>Away Team</th>
+                    <th>Umpires</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in games %}
+                <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}'"{% endif %}>
+                    <td>{{ game.get_time_display }}</td>
+                    <td>{{ game.get_field_display }}</td>
+                    <td>{{ game.home_team }}</td>
+                    <td>{{ game.away_team }}</td>
+                    <td>
+                        {% if game.assignments.all %}
+                            {% for assignment in game.assignments.all %}
+                                <div>
+                                    {{ assignment.umpire }}
+                                    <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
+                                        {{ assignment.get_position_display }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                            {% if game.assignments.count == 1 and game.assignments.first.position != 'solo' %}
+                                <div style="color: #ff9800; font-weight: bold; margin-top: 0.25rem;">
+                                    ⚠️ Needs 1 more umpire
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #dc3545; font-weight: bold;">
+                                🚨 No umpires assigned
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+{% elif not show_by_date and games_list %}
+    <div class="card">
+        <table class="table sortable">
+            <thead>
+                <tr>
+                    <th>
+                        <a href="?week={{ week_offset }}&sort=datetime&order={% if sort_by == 'datetime' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" 
+                           style="color: inherit; text-decoration: none;">
+                            Date/Time
+                            {% if sort_by == 'datetime' %}
+                                {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?week={{ week_offset }}&sort=time&order={% if sort_by == 'time' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                           style="color: inherit; text-decoration: none;">
+                            Time
+                            {% if sort_by == 'time' %}
+                                {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?week={{ week_offset }}&sort=field&order={% if sort_by == 'field' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                           style="color: inherit; text-decoration: none;">
+                            Field
+                            {% if sort_by == 'field' %}
+                                {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?week={{ week_offset }}&sort=home&order={% if sort_by == 'home' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                           style="color: inherit; text-decoration: none;">
+                            Home Team
+                            {% if sort_by == 'home' %}
+                                {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?week={{ week_offset }}&sort=away&order={% if sort_by == 'away' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                           style="color: inherit; text-decoration: none;">
+                            Away Team
+                            {% if sort_by == 'away' %}
+                                {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="?week={{ week_offset }}&sort=umpires&order={% if sort_by == 'umpires' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                           style="color: inherit; text-decoration: none;">
+                            Umpires
+                            {% if sort_by == 'umpires' %}
+                                {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
+                            {% endif %}
+                        </a>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in games_list %}
+                <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}'"{% endif %}>
+                    <td>{{ game.date|date:"M d, Y" }}</td>
+                    <td>{{ game.get_time_display }}</td>
+                    <td>{{ game.get_field_display }}</td>
+                    <td>{{ game.home_team }}</td>
+                    <td>{{ game.away_team }}</td>
+                    <td>
+                        {% if game.assignments.all %}
+                            {% for assignment in game.assignments.all %}
+                                <div>
+                                    {{ assignment.umpire }}
+                                    <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
+                                        {{ assignment.get_position_display }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                            {% if game.assignments.count == 1 and game.assignments.first.position != 'solo' %}
+                                <div style="color: #ff9800; font-weight: bold; margin-top: 0.25rem;">
+                                    ⚠️ Needs 1 more umpire
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #dc3545; font-weight: bold;">
+                                🚨 No umpires assigned
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <p>No games scheduled for this week.</p>
+    </div>
+{% endif %}
+
+<style>
+.sortable th {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.sortable th:hover {
+    background-color: #e9ecef;
+}
+
+.sortable th a {
+    display: block;
+    width: 100%;
+}
+
+{% if user.is_staff %}
+tbody tr:hover {
+    background-color: #e8f4f8;
+    transition: background-color 0.2s;
+}
+{% endif %}
+</style>
+{% endblock %}

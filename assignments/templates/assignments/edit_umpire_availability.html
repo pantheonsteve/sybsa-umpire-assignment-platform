@@ -1,0 +1,231 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Edit Availability - {{ umpire }} - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Edit Availability for {{ umpire }}</h2>
+
+<div class="card" style="background-color: #f8f9fa; margin-bottom: 1rem;">
+    <p>Set availability for {{ umpire.first_name }} {{ umpire.last_name }} for all game dates and time slots.</p>
+    <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 1rem;">
+        <div><span class="status-indicator available">✓</span> Available</div>
+        <div><span class="status-indicator preferred">★</span> Preferred</div>
+        <div><span class="status-indicator unavailable">✗</span> Unavailable</div>
+        <div><span class="status-indicator none">-</span> Not Set (defaults to unavailable)</div>
+    </div>
+</div>
+
+<form method="post" id="availability-form">
+    {% csrf_token %}
+    
+    <div class="card" style="overflow-x: auto;">
+        <table class="availability-edit-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    {% for date_data in game_dates_with_slots %}
+                        {% if forloop.first %}
+                            {% for slot in date_data.slots %}
+                                <th>{{ slot.display }}</th>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                    <th>Quick Set</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for date_data in game_dates_with_slots %}
+                <tr>
+                    <td style="font-weight: 600; white-space: nowrap;">
+                        {{ date_data.date|date:"M d, Y" }}
+                    </td>
+                    {% for slot in date_data.slots %}
+                    <td class="availability-cell">
+                        <select name="{{ slot.field_name }}" class="availability-select" data-date="{{ date_data.date }}" data-slot="{{ slot.time_slot }}">
+                            <option value="none" {% if slot.status == 'none' %}selected{% endif %}>-</option>
+                            <option value="available" {% if slot.status == 'available' %}selected{% endif %}>✓</option>
+                            <option value="preferred" {% if slot.status == 'preferred' %}selected{% endif %}>★</option>
+                            <option value="unavailable" {% if slot.status == 'unavailable' %}selected{% endif %}>✗</option>
+                        </select>
+                    </td>
+                    {% endfor %}
+                    <td>
+                        <button type="button" class="btn-small quick-set" data-date="{{ date_data.date }}">Set All</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+        <button type="submit" class="btn">Save Changes</button>
+        <a href="{% url 'availability_grid' %}" class="btn btn-secondary">Cancel</a>
+        <div style="margin-left: auto;">
+            <button type="button" class="btn" onclick="setAllAvailability('available')">Set All Available</button>
+            <button type="button" class="btn btn-secondary" onclick="setAllAvailability('unavailable')">Set All Unavailable</button>
+        </div>
+    </div>
+</form>
+
+<style>
+.availability-edit-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.availability-edit-table th,
+.availability-edit-table td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.availability-edit-table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.availability-edit-table tbody tr:hover {
+    background-color: #f0f8ff;
+}
+
+.availability-select {
+    padding: 0.25rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: white;
+    cursor: pointer;
+    min-width: 50px;
+}
+
+.availability-select:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.status-indicator.available {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-indicator.preferred {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-indicator.unavailable {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.status-indicator.none {
+    background-color: #e9ecef;
+    color: #6c757d;
+}
+
+.btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-small:hover {
+    background-color: #5a6268;
+}
+
+/* Color code the select dropdowns based on their value */
+.availability-select[value="available"] {
+    background-color: #d4edda;
+}
+
+.availability-select[value="preferred"] {
+    background-color: #fff3cd;
+}
+
+.availability-select[value="unavailable"] {
+    background-color: #f8d7da;
+}
+
+.availability-select[value="none"] {
+    background-color: #e9ecef;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update select background color when changed
+    document.querySelectorAll('.availability-select').forEach(select => {
+        updateSelectColor(select);
+        select.addEventListener('change', function() {
+            updateSelectColor(this);
+        });
+    });
+    
+    // Quick set buttons for each date
+    document.querySelectorAll('.quick-set').forEach(button => {
+        button.addEventListener('click', function() {
+            const date = this.dataset.date;
+            const status = prompt('Set all slots for this date to:\n1 = Available (✓)\n2 = Preferred (★)\n3 = Unavailable (✗)\n4 = Not Set (-)');
+            
+            let setValue = 'none';
+            if (status === '1') setValue = 'available';
+            else if (status === '2') setValue = 'preferred';
+            else if (status === '3') setValue = 'unavailable';
+            else if (status === '4') setValue = 'none';
+            else return;
+            
+            document.querySelectorAll(`.availability-select[data-date="${date}"]`).forEach(select => {
+                select.value = setValue;
+                updateSelectColor(select);
+            });
+        });
+    });
+});
+
+function updateSelectColor(select) {
+    const value = select.value;
+    select.style.backgroundColor = '';
+    
+    if (value === 'available') {
+        select.style.backgroundColor = '#d4edda';
+        select.style.color = '#155724';
+    } else if (value === 'preferred') {
+        select.style.backgroundColor = '#fff3cd';
+        select.style.color = '#856404';
+    } else if (value === 'unavailable') {
+        select.style.backgroundColor = '#f8d7da';
+        select.style.color = '#721c24';
+    } else {
+        select.style.backgroundColor = '#e9ecef';
+        select.style.color = '#6c757d';
+    }
+}
+
+function setAllAvailability(status) {
+    document.querySelectorAll('.availability-select').forEach(select => {
+        select.value = status;
+        updateSelectColor(select);
+    });
+}
+</script>
+
+{% endblock %}

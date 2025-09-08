@@ -1,0 +1,95 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}CSV Data Import - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>CSV Data Import</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="card" style="background-color: {% if message.tags == 'success' %}#d4edda{% elif message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'success' %}#c3e6cb{% elif message.tags == 'error' %}#f5c6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'success' %}#155724{% elif message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card">
+    <h3>Import Data from CSV Files</h3>
+    <p>Select the type of data you want to import. Make sure to import in the correct order to avoid reference errors.</p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+        
+        <div class="card" style="border: 2px solid #3498db;">
+            <h4>1. League Admins</h4>
+            <p style="font-size: 0.9rem; color: #666;">Import league administrators who oversee towns.</p>
+            <p style="font-size: 0.85rem; color: #888;">Required fields: first_name, last_name, email, phone</p>
+            <a href="{% url 'import_csv' 'league_admins' %}" class="btn" style="width: 100%; text-align: center;">Import League Admins</a>
+        </div>
+        
+        <div class="card" style="border: 2px solid #3498db;">
+            <h4>2. Coaches</h4>
+            <p style="font-size: 0.9rem; color: #666;">Import team coaches.</p>
+            <p style="font-size: 0.85rem; color: #888;">Required fields: first_name, last_name, email, phone</p>
+            <a href="{% url 'import_csv' 'coaches' %}" class="btn" style="width: 100%; text-align: center;">Import Coaches</a>
+        </div>
+        
+        <div class="card" style="border: 2px solid #3498db;">
+            <h4>3. Towns</h4>
+            <p style="font-size: 0.9rem; color: #666;">Import participating towns.</p>
+            <p style="font-size: 0.85rem; color: #888;">Required fields: name, league_admin_email (optional)</p>
+            <a href="{% url 'import_csv' 'towns' %}" class="btn" style="width: 100%; text-align: center;">Import Towns</a>
+        </div>
+        
+        <div class="card" style="border: 2px solid #3498db;">
+            <h4>4. Teams</h4>
+            <p style="font-size: 0.9rem; color: #666;">Import teams for each town and level.</p>
+            <p style="font-size: 0.85rem; color: #888;">Required fields: town, level, name (optional), coach_email (optional)</p>
+            <a href="{% url 'import_csv' 'teams' %}" class="btn" style="width: 100%; text-align: center;">Import Teams</a>
+        </div>
+        
+        <div class="card" style="border: 2px solid #3498db;">
+            <h4>5. Umpires</h4>
+            <p style="font-size: 0.9rem; color: #666;">Import umpires with their qualifications.</p>
+            <p style="font-size: 0.85rem; color: #888;">Required fields: first_name, last_name, email, phone, adult, patched</p>
+            <a href="{% url 'import_csv' 'umpires' %}" class="btn" style="width: 100%; text-align: center;">Import Umpires</a>
+        </div>
+        
+        <div class="card" style="border: 2px solid #3498db;">
+            <h4>6. Games</h4>
+            <p style="font-size: 0.9rem; color: #666;">Import game schedule.</p>
+            <p style="font-size: 0.85rem; color: #888;">Required: home_town, home_level, away_town, away_level, date, time, field<br>
+            Optional: home_team_name, away_team_name (needed if multiple teams per level)</p>
+            <a href="{% url 'import_csv' 'games' %}" class="btn" style="width: 100%; text-align: center;">Import Games</a>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="background-color: #f8f9fa; margin-top: 2rem;">
+    <h3>Import Order Guidelines</h3>
+    <ol>
+        <li><strong>League Admins</strong> - Import first (referenced by Towns)</li>
+        <li><strong>Coaches</strong> - Import second (referenced by Teams)</li>
+        <li><strong>Towns</strong> - Import third (referenced by Teams)</li>
+        <li><strong>Teams</strong> - Import fourth (referenced by Games)</li>
+        <li><strong>Umpires</strong> - Can be imported anytime</li>
+        <li><strong>Games</strong> - Import last (requires Teams to exist)</li>
+    </ol>
+    
+    <h4 style="margin-top: 1.5rem;">Sample Files</h4>
+    <p>Sample CSV files are available in the <code>sample_data/</code> directory of the project.</p>
+</div>
+
+<div class="card" style="background-color: #fff3cd; border-color: #ffeaa7; margin-top: 1rem;">
+    <h4 style="color: #856404;">Important Notes</h4>
+    <ul style="color: #856404;">
+        <li>CSV files must use UTF-8 encoding</li>
+        <li>The first row must contain column headers exactly as specified</li>
+        <li>Email addresses are used as unique identifiers for people (League Admins, Coaches, Umpires)</li>
+        <li>For yes/no fields (adult, patched), use: yes, no, true, false, 1, or 0</li>
+        <li>Dates should be in YYYY-MM-DD format</li>
+        <li>Times must be one of: 8:00, 10:15, 12:30, 2:45</li>
+        <li>Fields must be one of: A, B, C, D, E</li>
+        <li>Levels must be one of: AAA, Minors, Majors</li>
+    </ul>
+</div>
+{% endblock %}

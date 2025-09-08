@@ -1,0 +1,7 @@
+first_name,last_name,email,phone,adult,patched
+Tom,Anderson,tom.anderson@email.com,5556789012,yes,yes
+Emily,Martinez,emily.martinez@email.com,5557890123,yes,yes
+James,Wilson,james.wilson@email.com,5558901234,yes,no
+Maria,Garcia,maria.garcia@email.com,5559012345,yes,no
+Kevin,Lee,kevin.lee@email.com,5550123456,no,no
+Ashley,Taylor,ashley.taylor@email.com,5551234567,no,no

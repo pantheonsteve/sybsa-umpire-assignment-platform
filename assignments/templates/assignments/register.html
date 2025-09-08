@@ -1,0 +1,126 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Register - Umpire Assigner{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 500px; margin: 4rem auto;">
+    <div class="card">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Umpire Registration</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+            <div class="card" style="background-color: {% if message.tags == 'error' %}#f8d7da{% elif message.tags == 'success' %}#d4edda{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'error' %}#f5c6cb{% elif message.tags == 'success' %}#c3e6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'error' %}#721c24{% elif message.tags == 'success' %}#155724{% else %}#0c5460{% endif %}; margin-bottom: 1rem;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #495057;">Account Information</h3>
+            
+            <div style="margin-bottom: 1rem;">
+                <label for="username" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Username *</label>
+                <input type="text" name="username" id="username" required 
+                       value="{{ form_data.username|default:'' }}"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+                <small style="color: #666;">You'll use this to log in</small>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label for="email" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email Address *</label>
+                <input type="email" name="email" id="email" required 
+                       value="{{ form_data.email|default:'' }}"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label for="password" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Password *</label>
+                <input type="password" name="password" id="password" required 
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+                <small style="color: #666;">Minimum 8 characters</small>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label for="password2" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Confirm Password *</label>
+                <input type="password" name="password2" id="password2" required 
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            </div>
+            
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #495057; border-top: 1px solid #dee2e6; padding-top: 1.5rem;">Personal Information</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label for="first_name" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">First Name *</label>
+                    <input type="text" name="first_name" id="first_name" required 
+                           value="{{ form_data.first_name|default:'' }}"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+                </div>
+                
+                <div>
+                    <label for="last_name" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Last Name *</label>
+                    <input type="text" name="last_name" id="last_name" required 
+                           value="{{ form_data.last_name|default:'' }}"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label for="phone" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Phone Number *</label>
+                <input type="tel" name="phone" id="phone" required 
+                       value="{{ form_data.phone|default:'' }}"
+                       placeholder="+1234567890"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            </div>
+            
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #495057; border-top: 1px solid #dee2e6; padding-top: 1.5rem;">Umpire Status</h3>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" name="adult" id="adult" 
+                           {% if form_data.adult == 'on' %}checked{% endif %}
+                           style="margin-right: 0.5rem; width: 20px; height: 20px;">
+                    <span style="font-weight: 600;">I am 18 years or older (Adult Umpire)</span>
+                </label>
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" name="patched" id="patched" 
+                           {% if form_data.patched == 'on' %}checked{% endif %}
+                           style="margin-right: 0.5rem; width: 20px; height: 20px;">
+                    <span style="font-weight: 600;">I am a certified/patched umpire</span>
+                </label>
+                <small style="color: #666; margin-left: 1.75rem; display: block;">Check this if you have completed umpire certification</small>
+            </div>
+            
+            <button type="submit" class="btn" style="width: 100%; padding: 0.75rem; font-size: 1.1rem; background-color: #27ae60;">
+                Register
+            </button>
+        </form>
+        
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0; text-align: center; color: #666;">
+            <p style="margin-bottom: 0.5rem;">Already have an account?</p>
+            <a href="{% url 'login' %}" class="btn btn-secondary">Login</a>
+        </div>
+        
+        <div style="margin-top: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px;">
+            <h4 style="margin-bottom: 0.5rem; color: #495057;">What happens next?</h4>
+            <ol style="margin: 0; padding-left: 1.5rem; color: #666; font-size: 0.9rem;">
+                <li>Your registration will be reviewed by a league administrator</li>
+                <li>You'll receive an email once your account is approved</li>
+                <li>After approval, you can log in and set your availability</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<style>
+input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+</style>
+{% endblock %}

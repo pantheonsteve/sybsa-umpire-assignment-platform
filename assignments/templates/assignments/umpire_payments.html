@@ -1,0 +1,125 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Umpire Payments - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Umpire Payment Tracking</h2>
+
+<div class="card">
+    <h3>Payment Summary</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Umpire</th>
+                <th>Status</th>
+                <th class="text-right">Total Earned</th>
+                <th class="text-right">Total Paid</th>
+                <th class="text-right">Balance Due</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in umpire_data %}
+            <tr>
+                <td>
+                    {{ data.umpire }}
+                    {% if data.umpire.patched %}
+                        <span class="badge badge-success">Patched</span>
+                    {% endif %}
+                    {% if data.umpire.adult %}
+                        <span class="badge badge-info">Adult</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if data.unpaid_amount > 0 %}
+                        <span class="badge badge-warning">Payment Due</span>
+                    {% else %}
+                        <span class="badge badge-success">Current</span>
+                    {% endif %}
+                </td>
+                <td class="text-right">${{ data.total_owed|floatformat:2 }}</td>
+                <td class="text-right">${{ data.total_paid|floatformat:2 }}</td>
+                <td class="text-right">
+                    {% if data.unpaid_amount > 0 %}
+                        <strong>${{ data.unpaid_amount|floatformat:2 }}</strong>
+                    {% else %}
+                        $0.00
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% for data in umpire_data %}
+{% if data.unpaid_amount > 0 %}
+<div class="card">
+    <h3>{{ data.umpire }} - Payment Details</h3>
+    
+    <div class="mb-3">
+        <strong>Balance Due: ${{ data.unpaid_amount|floatformat:2 }}</strong>
+    </div>
+    
+    {% if data.recent_assignments %}
+    <h4>Recent Assignments</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Game</th>
+                <th>Position</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignment in data.recent_assignments %}
+            <tr>
+                <td>{{ assignment.game.date|date:"M d, Y" }}</td>
+                <td>{{ assignment.game }}</td>
+                <td>{{ assignment.get_position_display }}</td>
+                <td class="text-right">${{ assignment.pay_amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    
+    {% if data.payment_history %}
+    <h4>Payment History</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Paid Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payment in data.payment_history %}
+            <tr>
+                <td>{{ payment.period_start|date:"M d" }} - {{ payment.period_end|date:"M d, Y" }}</td>
+                <td>${{ payment.amount|floatformat:2 }}</td>
+                <td>
+                    {% if payment.paid %}
+                        <span class="badge badge-success">Paid</span>
+                    {% else %}
+                        <span class="badge badge-danger">Unpaid</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if payment.paid_date %}
+                        {{ payment.paid_date|date:"M d, Y" }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}

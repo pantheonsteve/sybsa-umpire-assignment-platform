@@ -1,0 +1,9 @@
+home_town,home_level,home_team_name,away_town,away_level,away_team_name,date,time,field
+Springfield,AAA,Tigers,Riverside,AAA,Eagles,2025-01-10,8:00,A
+Springfield,Majors,Lions,Riverside,Majors,Hawks,2025-01-10,10:15,B
+Oakville,AAA,Sharks,Mountain View,AAA,Rangers,2025-01-10,12:30,C
+Springfield,Minors,Bears,Riverside,Minors,Falcons,2025-01-10,2:45,D
+Riverside,AAA,Eagles,Oakville,AAA,Sharks,2025-01-11,8:00,A
+Mountain View,Majors,Stars,Springfield,Majors,Lions,2025-01-11,10:15,B
+Riverside,Majors,Hawks,Oakville,Majors,Dolphins,2025-01-11,12:30,C
+Mountain View,AAA,Rangers,Springfield,AAA,Tigers,2025-01-11,2:45,D

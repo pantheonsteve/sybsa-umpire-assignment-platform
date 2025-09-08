@@ -1,0 +1,238 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Manage Availability - {{ umpire }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Manage Your Availability</h2>
+    <a href="{% url 'umpire_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="card" style="background-color: {% if message.tags == 'success' %}#d4edda{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'success' %}#c3e6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'success' %}#155724{% else %}#0c5460{% endif %}; margin-bottom: 1rem;">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+{% if game_dates_with_slots %}
+<!-- Game Dates Grid -->
+<div class="card">
+    <h3>Available Game Slots</h3>
+    <p style="color: #666; margin-bottom: 1.5rem;">Click on any slot to set your availability. Games are scheduled on these dates and times:</p>
+    
+    {% for date, time_slots in game_dates_with_slots.items %}
+    <div style="margin-bottom: 2rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-bottom: 1rem;">{{ date|date:"l, F j, Y" }}</h4>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+            {% for time_slot in time_slots %}
+            <div class="availability-slot" 
+                 data-date="{{ date|date:'Y-m-d' }}" 
+                 data-time="{{ time_slot }}"
+                 data-status=""
+                 style="padding: 1rem; border: 2px solid #dee2e6; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; background-color: white;">
+                
+                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem;">
+                    {% for choice_val, choice_display in time_slot_choices %}
+                        {% if choice_val == time_slot %}{{ choice_display }}{% endif %}
+                    {% endfor %}
+                </div>
+                
+                <div style="font-size: 0.9rem;">
+                    <span style="color: #999;">Not Set</span>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- All slots option -->
+            <div class="availability-slot" 
+                 data-date="{{ date|date:'Y-m-d' }}" 
+                 data-time="all"
+                 data-status=""
+                 style="padding: 1rem; border: 2px solid #dee2e6; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; background-color: #f0f0f0;">
+                
+                <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem;">
+                    All Day
+                </div>
+                
+                <div style="font-size: 0.85rem;">
+                    <span style="color: #666;">Set for all slots</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Availability Form (Hidden by default) -->
+<div id="availability-form-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+    <div class="card" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px;">
+        <h4>Set Availability</h4>
+        <form method="post" id="availability-form">
+            {% csrf_token %}
+            <input type="hidden" name="date" id="form-date">
+            <input type="hidden" name="time_slot" id="form-time-slot">
+            
+            <div style="margin-bottom: 1rem;">
+                <strong>Date:</strong> <span id="display-date"></span><br>
+                <strong>Time:</strong> <span id="display-time"></span>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label for="status">Availability Status:</label>
+                <select name="status" id="status" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">-- Select Status --</option>
+                    {% for value, display in availability_choices %}
+                        <option value="{{ value }}">{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label for="notes">Notes (optional):</label>
+                <textarea name="notes" id="notes" rows="2" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn">Save</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% else %}
+<div class="card" style="background-color: #fff3cd; border-color: #ffc107;">
+    <h3 style="color: #856404;">No Games Scheduled Yet</h3>
+    <p style="color: #856404;">There are no games in the system yet. Once games are added, you'll be able to set your availability for specific dates and time slots.</p>
+    <p style="color: #856404;">Please check back later or contact your league administrator.</p>
+</div>
+{% endif %}
+
+<!-- Legend -->
+<div class="card" style="margin-top: 1rem; background-color: #f8f9fa;">
+    <h4>Legend</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <div style="display: flex; align-items: center;">
+            <div style="width: 30px; height: 30px; background-color: #d4edda; border: 2px solid #28a745; border-radius: 4px; margin-right: 0.5rem;"></div>
+            <strong>Available</strong> - You can umpire
+        </div>
+        <div style="display: flex; align-items: center;">
+            <div style="width: 30px; height: 30px; background-color: #cce5ff; border: 2px solid #007bff; border-radius: 4px; margin-right: 0.5rem;"></div>
+            <strong>Preferred</strong> - Your preferred slot
+        </div>
+        <div style="display: flex; align-items: center;">
+            <div style="width: 30px; height: 30px; background-color: #f8d7da; border: 2px solid #dc3545; border-radius: 4px; margin-right: 0.5rem;"></div>
+            <strong>Unavailable</strong> - You cannot umpire
+        </div>
+        <div style="display: flex; align-items: center;">
+            <div style="width: 30px; height: 30px; background-color: white; border: 2px solid #dee2e6; border-radius: 4px; margin-right: 0.5rem;"></div>
+            <strong>Not Set</strong> - No preference set
+        </div>
+    </div>
+</div>
+
+<style>
+.availability-slot:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+
+<script>
+const timeSlotDisplay = {
+    '8:00': '8:00 AM',
+    '10:15': '10:15 AM',
+    '12:30': '12:30 PM',
+    '2:45': '2:45 PM',
+    'all': 'All Time Slots'
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Apply existing availability to slots
+    console.log('Loading availability...');
+    {% for date, slots in availability_by_date.items %}
+        {% for slot in slots %}
+        console.log('Setting availability for {{ date|date:"Y-m-d" }} at {{ slot.time_slot }}: {{ slot.status }}');
+        const slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }} = document.querySelector('[data-date="{{ date|date:"Y-m-d" }}"][data-time="{{ slot.time_slot }}"]');
+        if (slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}) {
+            slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.dataset.status = '{{ slot.status }}';
+            
+            // Update background color based on status
+            {% if slot.status == 'available' %}
+                slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.style.backgroundColor = '#d4edda';
+                slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.style.borderColor = '#28a745';
+            {% elif slot.status == 'preferred' %}
+                slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.style.backgroundColor = '#cce5ff';
+                slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.style.borderColor = '#007bff';
+            {% else %}
+                slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.style.backgroundColor = '#f8d7da';
+                slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.style.borderColor = '#dc3545';
+            {% endif %}
+            
+            // Update text
+            const statusDiv = slot_{{ forloop.parentloop.counter }}_{{ forloop.counter }}.querySelector('div:last-child');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<strong>{{ slot.get_status_display }}</strong>{% if slot.notes %}<br><small>{{ slot.notes|escapejs }}</small>{% endif %}';
+            }
+        } else {
+            console.log('Could not find slot element for {{ date|date:"Y-m-d" }} at {{ slot.time_slot }}');
+        }
+        {% endfor %}
+    {% endfor %}
+    
+    // Add click handlers to all availability slots
+    document.querySelectorAll('.availability-slot').forEach(slot => {
+        slot.addEventListener('click', function() {
+            const date = this.dataset.date;
+            const timeSlot = this.dataset.time;
+            openModal(date, timeSlot);
+        });
+    });
+});
+
+function openModal(date, timeSlot) {
+    document.getElementById('form-date').value = date;
+    document.getElementById('form-time-slot').value = timeSlot;
+    
+    // Format date for display
+    const dateObj = new Date(date + 'T00:00:00');
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('display-date').textContent = dateObj.toLocaleDateString('en-US', options);
+    document.getElementById('display-time').textContent = timeSlotDisplay[timeSlot] || timeSlot;
+    
+    // Reset form
+    document.getElementById('status').value = '';
+    document.getElementById('notes').value = '';
+    
+    // Check if there's existing availability for this slot
+    const slot = document.querySelector(`[data-date="${date}"][data-time="${timeSlot}"]`);
+    if (slot && slot.dataset.status) {
+        document.getElementById('status').value = slot.dataset.status;
+        // Find matching availability for notes
+        {% for date, slots in availability_by_date.items %}
+            {% for avail in slots %}
+            if ('{{ date|date:"Y-m-d" }}' === date && '{{ avail.time_slot }}' === timeSlot) {
+                document.getElementById('notes').value = '{{ avail.notes|escapejs }}';
+            }
+            {% endfor %}
+        {% endfor %}
+    }
+    
+    document.getElementById('availability-form-modal').style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('availability-form-modal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('availability-form-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

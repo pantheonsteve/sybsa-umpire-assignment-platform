@@ -1,0 +1,278 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Umpire Availability Grid - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Umpire Availability Grid</h2>
+
+<div class="card" style="background-color: #f8f9fa; margin-bottom: 1rem;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: end;">
+        <div>
+            <label for="filter_date">Filter by Date:</label>
+            <input type="date" name="date" id="filter_date" value="{{ filter_date }}" 
+                   style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        <button type="submit" class="btn">Filter</button>
+        <a href="{% url 'availability_grid' %}" class="btn btn-secondary">Show All Dates</a>
+    </form>
+</div>
+
+<div class="card" style="overflow-x: auto;">
+    <table class="availability-grid">
+        <thead>
+            <tr>
+                <th rowspan="2" style="position: sticky; left: 0; background: white; z-index: 10;">Umpire</th>
+                {% for date, slots in game_dates_with_slots %}
+                <th colspan="{{ slots|length }}" style="text-align: center; border-left: 2px solid #dee2e6;">
+                    {{ date|date:"M d" }}
+                </th>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for date, slots in game_dates_with_slots %}
+                    {% for slot in slots %}
+                    <th style="font-size: 0.8rem; writing-mode: vertical-lr; text-align: center; {% if forloop.first %}border-left: 2px solid #dee2e6;{% endif %}">
+                        {{ slot.1 }}
+                    </th>
+                    {% endfor %}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in grid_data %}
+            <tr>
+                <td style="position: sticky; left: 0; background: white; font-weight: 600; white-space: nowrap;">
+                    {{ row.umpire }}
+                    {% if row.umpire.patched %}<span class="badge badge-info">P</span>{% endif %}
+                    {% if row.umpire.adult %}<span class="badge badge-warning">A</span>{% endif %}
+                    <a href="{% url 'edit_umpire_availability' row.umpire.id %}" class="edit-link" title="Edit Availability">✏️</a>
+                </td>
+                {% for slot_data in row.slots %}
+                    <td class="availability-cell {% if slot_data.first_of_date %}date-separator{% endif %}"
+                        data-status="{{ slot_data.status|default:'none' }}">
+                        {% if slot_data.status == 'available' %}
+                            <span class="status-indicator available" title="Available">✓</span>
+                        {% elif slot_data.status == 'preferred' %}
+                            <span class="status-indicator preferred" title="Preferred">★</span>
+                        {% elif slot_data.status == 'unavailable' %}
+                            <span class="status-indicator unavailable" title="Unavailable">✗</span>
+                        {% else %}
+                            <span class="status-indicator none" title="Not Set">-</span>
+                        {% endif %}
+                    </td>
+                {% endfor %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="100%" style="text-align: center; padding: 2rem;">
+                    No umpires registered yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Summary Statistics -->
+<div class="card" style="margin-top: 2rem;">
+    <h3>Availability Summary</h3>
+    <div id="summary-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <!-- Will be populated by JavaScript -->
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="card" style="background-color: #f8f9fa; margin-top: 1rem;">
+    <h4>Legend</h4>
+    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+        <div><span class="status-indicator available">✓</span> Available</div>
+        <div><span class="status-indicator preferred">★</span> Preferred</div>
+        <div><span class="status-indicator unavailable">✗</span> Unavailable</div>
+        <div><span class="status-indicator none">-</span> Not Set (Unavailable by default)</div>
+        <div><span class="badge badge-info">P</span> Patched Umpire</div>
+        <div><span class="badge badge-warning">A</span> Adult Umpire</div>
+    </div>
+</div>
+
+<style>
+.availability-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.availability-grid th,
+.availability-grid td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+    text-align: center;
+    min-width: 40px;
+}
+
+.availability-grid thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.availability-grid tbody tr:hover {
+    background-color: #f0f8ff;
+}
+
+.availability-cell {
+    position: relative;
+    height: 40px;
+}
+
+.availability-cell.date-separator {
+    border-left: 2px solid #dee2e6 !important;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.status-indicator.available {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-indicator.preferred {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-indicator.unavailable {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.status-indicator.none {
+    background-color: #e9ecef;
+    color: #6c757d;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    margin-left: 0.25rem;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.edit-link {
+    margin-left: 0.5rem;
+    text-decoration: none;
+    padding: 0.125rem 0.25rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    display: inline-block;
+}
+
+.edit-link:hover {
+    background-color: #f0f0f0;
+}
+
+/* Responsive table wrapper */
+@media (max-width: 768px) {
+    .availability-grid {
+        font-size: 0.75rem;
+    }
+    
+    .availability-grid th,
+    .availability-grid td {
+        padding: 0.25rem;
+        min-width: 30px;
+    }
+    
+    .status-indicator {
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+        font-size: 0.8rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate summary statistics
+    const cells = document.querySelectorAll('.availability-cell');
+    const stats = {
+        available: 0,
+        preferred: 0,
+        unavailable: 0,
+        none: 0
+    };
+    
+    cells.forEach(cell => {
+        const status = cell.dataset.status;
+        if (stats.hasOwnProperty(status)) {
+            stats[status]++;
+        }
+    });
+    
+    const total = cells.length;
+    const summaryHtml = `
+        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 8px;">
+            <h4 style="margin: 0;">Total Slots</h4>
+            <p style="font-size: 2rem; margin: 0.5rem 0;">${total}</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); color: #155724; padding: 1rem; border-radius: 8px;">
+            <h4 style="margin: 0;">Available</h4>
+            <p style="font-size: 2rem; margin: 0.5rem 0;">${stats.available}</p>
+            <p style="font-size: 0.9rem; margin: 0;">${total > 0 ? Math.round(stats.available / total * 100) : 0}%</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #856404; padding: 1rem; border-radius: 8px;">
+            <h4 style="margin: 0;">Preferred</h4>
+            <p style="font-size: 2rem; margin: 0.5rem 0;">${stats.preferred}</p>
+            <p style="font-size: 0.9rem; margin: 0;">${total > 0 ? Math.round(stats.preferred / total * 100) : 0}%</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #fccb90 0%, #ff6f91 100%); color: white; padding: 1rem; border-radius: 8px;">
+            <h4 style="margin: 0;">Unavailable</h4>
+            <p style="font-size: 2rem; margin: 0.5rem 0;">${stats.unavailable}</p>
+            <p style="font-size: 0.9rem; margin: 0;">${total > 0 ? Math.round(stats.unavailable / total * 100) : 0}%</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #e0e0e0 0%, #b0b0b0 100%); color: #495057; padding: 1rem; border-radius: 8px;">
+            <h4 style="margin: 0;">Not Set</h4>
+            <p style="font-size: 2rem; margin: 0.5rem 0;">${stats.none}</p>
+            <p style="font-size: 0.9rem; margin: 0;">${total > 0 ? Math.round(stats.none / total * 100) : 0}%</p>
+        </div>
+    `;
+    
+    document.getElementById('summary-stats').innerHTML = summaryHtml;
+    
+    // Highlight rows on hover
+    const rows = document.querySelectorAll('.availability-grid tbody tr');
+    rows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f0f8ff';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+
+{% endblock %}

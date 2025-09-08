@@ -1,0 +1,271 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Edit Game - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Edit Game</h2>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="card" style="background-color: {% if message.tags == 'success' %}#d4edda{% elif message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'success' %}#c3e6cb{% elif message.tags == 'error' %}#f5c6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'success' %}#155724{% elif message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card">
+    <form method="post" id="edit-game-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="next" value="{{ referrer }}">
+        
+        <h3>Game Details</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div>
+                <label for="date">Date:</label>
+                <input type="date" name="date" id="date" value="{{ game.date|date:'Y-m-d' }}" class="form-input" required>
+            </div>
+            
+            <div>
+                <label for="time">Time:</label>
+                <select name="time" id="time" class="form-input" required>
+                    {% for value, display in time_choices %}
+                        <option value="{{ value }}" {% if game.time == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="field">Field:</label>
+                <select name="field" id="field" class="form-input" required>
+                    {% for value, display in field_choices %}
+                        <option value="{{ value }}" {% if game.field == value %}selected{% endif %}>{{ display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+            <div>
+                <label for="home_team">Home Team:</label>
+                <select name="home_team" id="home_team" class="form-input" required>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" {% if game.home_team.id == team.id %}selected{% endif %}>
+                            {{ team }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="away_team">Away Team:</label>
+                <select name="away_team" id="away_team" class="form-input" required>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" {% if game.away_team.id == team.id %}selected{% endif %}>
+                            {{ team }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <h3>Umpire Assignments</h3>
+        
+        <div id="umpire-assignments">
+            {% if assignments %}
+                {% for assignment in assignments %}
+                <div class="assignment-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 1rem; margin-bottom: 1rem;">
+                    <input type="hidden" name="assignment_id[]" value="{{ assignment.id }}">
+                    <select name="umpire_id[]" class="form-input">
+                        <option value="">-- Remove Assignment --</option>
+                        {% for umpire in umpires %}
+                            <option value="{{ umpire.id }}" {% if assignment.umpire_id == umpire.id %}selected{% endif %}>
+                                {{ umpire }}
+                                {% if umpire.patched %}[P]{% endif %}
+                                {% if umpire.adult %}[A]{% endif %}
+                                (Available)
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <select name="position[]" class="form-input">
+                        <option value="">-- Select Position --</option>
+                        <option value="solo" {% if assignment.position == 'solo' %}selected{% endif %}>Solo</option>
+                        <option value="plate" {% if assignment.position == 'plate' %}selected{% endif %}>Plate</option>
+                        <option value="base" {% if assignment.position == 'base' %}selected{% endif %}>Base</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary remove-assignment" style="padding: 0.5rem;">Remove</button>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="assignment-row" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 1rem; margin-bottom: 1rem;">
+                    <input type="hidden" name="assignment_id[]" value="new">
+                    <select name="umpire_id[]" class="form-input">
+                        <option value="">-- Select Umpire --</option>
+                        {% for umpire in umpires %}
+                            <option value="{{ umpire.id }}">
+                                {{ umpire }}
+                                {% if umpire.patched %}[P]{% endif %}
+                                {% if umpire.adult %}[A]{% endif %}
+                                (Available)
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <select name="position[]" class="form-input">
+                        <option value="">-- Select Position --</option>
+                        <option value="solo">Solo</option>
+                        <option value="plate">Plate</option>
+                        <option value="base">Base</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary remove-assignment" style="padding: 0.5rem;">Remove</button>
+                </div>
+            {% endif %}
+        </div>
+        
+        <button type="button" id="add-assignment" class="btn btn-secondary" style="margin-top: 1rem;">+ Add Umpire Assignment</button>
+        
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #dee2e6; display: flex; justify-content: space-between;">
+            <div>
+                <button type="submit" class="btn" style="background-color: #27ae60;">Save Changes</button>
+                <a href="{{ referrer }}" class="btn btn-secondary">Cancel</a>
+            </div>
+            
+            <button type="button" onclick="deleteGame()" class="btn" style="background-color: #dc3545;">Delete Game</button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="background-color: #f8f9fa; margin-top: 1rem;">
+    <h4>Assignment Guidelines</h4>
+    <ul>
+        <li>Games can have either 1 solo umpire or 2 umpires (plate + base)</li>
+        <li>If assigning 2 umpires, one must be plate and one must be base</li>
+        <li>Pay rates are calculated automatically based on position and patched status</li>
+        <li>[P] = Patched Umpire | [A] = Adult Umpire</li>
+    </ul>
+</div>
+
+<style>
+.form-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const assignmentsDiv = document.getElementById('umpire-assignments');
+    const addBtn = document.getElementById('add-assignment');
+    
+    // Template for new assignment row
+    function createAssignmentRow() {
+        const row = document.createElement('div');
+        row.className = 'assignment-row';
+        row.style = 'display: grid; grid-template-columns: 2fr 1fr auto; gap: 1rem; margin-bottom: 1rem;';
+        
+        row.innerHTML = `
+            <input type="hidden" name="assignment_id[]" value="new">
+            <select name="umpire_id[]" class="form-input">
+                <option value="">-- Select Umpire --</option>
+                {% for umpire in umpires %}
+                    <option value="{{ umpire.id }}">
+                        {{ umpire }}
+                        {% if umpire.patched %}[P]{% endif %}
+                        {% if umpire.adult %}[A]{% endif %}
+                        (Available)
+                    </option>
+                {% endfor %}
+            </select>
+            <select name="position[]" class="form-input">
+                <option value="">-- Select Position --</option>
+                <option value="solo">Solo</option>
+                <option value="plate">Plate</option>
+                <option value="base">Base</option>
+            </select>
+            <button type="button" class="btn btn-secondary remove-assignment" style="padding: 0.5rem;">Remove</button>
+        `;
+        
+        return row;
+    }
+    
+    // Add assignment row
+    addBtn.addEventListener('click', function() {
+        const currentRows = assignmentsDiv.querySelectorAll('.assignment-row').length;
+        if (currentRows < 2) {
+            assignmentsDiv.appendChild(createAssignmentRow());
+        } else {
+            alert('Maximum 2 umpires per game');
+        }
+    });
+    
+    // Remove assignment row
+    assignmentsDiv.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-assignment')) {
+            const row = e.target.closest('.assignment-row');
+            row.remove();
+            
+            // If no rows left, add an empty one
+            if (assignmentsDiv.querySelectorAll('.assignment-row').length === 0) {
+                assignmentsDiv.appendChild(createAssignmentRow());
+            }
+        }
+    });
+    
+    // Form validation
+    document.getElementById('edit-game-form').addEventListener('submit', function(e) {
+        const homeTeam = document.getElementById('home_team').value;
+        const awayTeam = document.getElementById('away_team').value;
+        
+        if (homeTeam === awayTeam) {
+            e.preventDefault();
+            alert('Home and away teams cannot be the same');
+            return false;
+        }
+        
+        // Validate umpire assignments
+        const assignments = assignmentsDiv.querySelectorAll('.assignment-row');
+        let positions = [];
+        
+        for (let row of assignments) {
+            const umpire = row.querySelector('select[name="umpire_id[]"]').value;
+            const position = row.querySelector('select[name="position[]"]').value;
+            
+            if (umpire && position) {
+                positions.push(position);
+            }
+        }
+        
+        // Check for valid position combinations
+        if (positions.length === 2) {
+            if (positions.includes('solo')) {
+                e.preventDefault();
+                alert('Cannot have a solo umpire with another umpire');
+                return false;
+            }
+            if (!positions.includes('plate') || !positions.includes('base')) {
+                e.preventDefault();
+                alert('When assigning 2 umpires, one must be plate and one must be base');
+                return false;
+            }
+        }
+    });
+});
+
+function deleteGame() {
+    if (confirm('Are you sure you want to delete this game? This cannot be undone.')) {
+        const form = document.getElementById('edit-game-form');
+        form.querySelector('input[name="action"]').value = 'delete';
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div>
+    <h1>{{ title }}</h1>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-row">
+            <label for="csv_file">Select CSV file:</label>
+            <input type="file" name="csv_file" id="csv_file" accept=".csv" required>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="Import" class="default">
+            <a href="../" class="button cancel-link">Cancel</a>
+        </div>
+    </form>
+    
+    <div class="help">
+        <h3>CSV Format Guide</h3>
+        <p>Make sure your CSV file has the correct column headers:</p>
+        
+        {% if opts.model_name == 'leagueadmin' or opts.model_name == 'coach' %}
+        <ul>
+            <li>first_name</li>
+            <li>last_name</li>
+            <li>email</li>
+            <li>phone</li>
+        </ul>
+        {% elif opts.model_name == 'umpire' %}
+        <ul>
+            <li>first_name</li>
+            <li>last_name</li>
+            <li>email</li>
+            <li>phone</li>
+            <li>adult (yes/no)</li>
+            <li>patched (yes/no)</li>
+        </ul>
+        {% elif opts.model_name == 'town' %}
+        <ul>
+            <li>name</li>
+            <li>league_admin_email (optional)</li>
+        </ul>
+        {% elif opts.model_name == 'team' %}
+        <ul>
+            <li>town</li>
+            <li>level (AAA/Minors/Majors)</li>
+            <li>name (optional)</li>
+            <li>coach_email (optional)</li>
+        </ul>
+        {% elif opts.model_name == 'game' %}
+        <ul>
+            <li>home_town</li>
+            <li>home_level</li>
+            <li>home_team_name (optional - required if town has multiple teams at same level)</li>
+            <li>away_town</li>
+            <li>away_level</li>
+            <li>away_team_name (optional - required if town has multiple teams at same level)</li>
+            <li>date (YYYY-MM-DD)</li>
+            <li>time (8:00/10:15/12:30/2:45)</li>
+            <li>field (A/B/C/D/E)</li>
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

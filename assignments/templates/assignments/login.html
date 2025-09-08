@@ -1,0 +1,51 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Login - Umpire Assigner{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 400px; margin: 4rem auto;">
+    <div class="card">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Login</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+            <div class="card" style="background-color: {% if message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'error' %}#f5c6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %}; margin-bottom: 1rem;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="margin-bottom: 1.5rem;">
+                <label for="username" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Username</label>
+                <input type="text" name="username" id="username" required 
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <label for="password" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Password</label>
+                <input type="password" name="password" id="password" required 
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            </div>
+            
+            <button type="submit" class="btn" style="width: 100%; padding: 0.75rem; font-size: 1.1rem;">
+                Login
+            </button>
+        </form>
+        
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0; text-align: center; color: #666;">
+            <p style="margin-bottom: 0.5rem;">Don't have an account?</p>
+            <a href="{% url 'register' %}" class="btn" style="background-color: #27ae60;">Register as an Umpire</a>
+        </div>
+    </div>
+</div>
+
+<style>
+input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+</style>
+{% endblock %}

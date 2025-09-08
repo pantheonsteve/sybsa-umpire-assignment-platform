@@ -1,0 +1,167 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Umpire Dashboard - {{ umpire }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Welcome, {{ umpire.first_name }}!</h2>
+    <div>
+        <a href="{% url 'manage_availability' %}" class="btn">Manage Availability</a>
+        <a href="{% url 'logout' %}" class="btn btn-secondary">Logout</a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">Upcoming Games</h3>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;">{{ upcoming_assignments|length }}</p>
+        <p style="font-size: 0.9rem; margin: 0;">Next {{ upcoming_assignments|length|pluralize:"game,games" }}</p>
+    </div>
+    
+    <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">This Month Earned</h3>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;">${{ total_earned_this_month|floatformat:2 }}</p>
+        <p style="font-size: 0.9rem; margin: 0;">{{ past_assignments|length }} completed game{{ past_assignments|length|pluralize }}</p>
+    </div>
+    
+    <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">Upcoming Earnings</h3>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;">${{ total_upcoming|floatformat:2 }}</p>
+        <p style="font-size: 0.9rem; margin: 0;">Potential earnings</p>
+    </div>
+    
+    <div class="card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+        <h3 style="margin-bottom: 0.5rem;">Status</h3>
+        <p style="font-size: 1.2rem; font-weight: bold; margin: 0;">
+            {% if umpire.patched %}Patched{% else %}Unpatched{% endif %}
+            {% if umpire.adult %} | Adult{% endif %}
+        </p>
+        <p style="font-size: 0.9rem; margin: 0;">Umpire classification</p>
+    </div>
+</div>
+
+<!-- Upcoming Assignments -->
+<div class="card">
+    <h3>Upcoming Assignments</h3>
+    
+    {% if upcoming_assignments %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Field</th>
+                <th>Game</th>
+                <th>Position</th>
+                <th>Pay</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignment in upcoming_assignments %}
+            <tr {% if assignment.game.date == today %}style="background-color: #fff3cd;"{% endif %}>
+                <td>
+                    {{ assignment.game.date|date:"M d, Y" }}
+                    {% if assignment.game.date == today %}
+                        <span class="badge badge-warning">Today</span>
+                    {% endif %}
+                </td>
+                <td>{{ assignment.game.get_time_display }}</td>
+                <td>{{ assignment.game.get_field_display }}</td>
+                <td>{{ assignment.game.home_team }} vs {{ assignment.game.away_team }}</td>
+                <td>
+                    <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
+                        {{ assignment.get_position_display }}
+                    </span>
+                </td>
+                <td>${{ assignment.pay_amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #666; text-align: center; padding: 2rem 0;">No upcoming assignments</p>
+    {% endif %}
+</div>
+
+<!-- Availability Status -->
+<div class="card" style="margin-top: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>Your Availability (Next 2 Weeks)</h3>
+        <a href="{% url 'manage_availability' %}" class="btn btn-secondary" style="padding: 0.25rem 0.75rem;">Edit</a>
+    </div>
+    
+    {% if availability_by_date %}
+    <div style="margin-top: 1rem;">
+        {% for date, availabilities in availability_by_date.items %}
+        <div style="margin-bottom: 1rem; padding: 0.75rem; background-color: #f8f9fa; border-radius: 6px;">
+            <strong style="display: block; margin-bottom: 0.5rem;">{{ date|date:"l, M d" }}</strong>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                {% for avail in availabilities %}
+                <div style="padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem;
+                            {% if avail.status == 'available' %}background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;
+                            {% elif avail.status == 'preferred' %}background-color: #cce5ff; color: #004085; border: 1px solid #b8daff;
+                            {% else %}background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;{% endif %}">
+                    {% if avail.time_slot == 'all' %}
+                        All Day - {{ avail.get_status_display }}
+                    {% else %}
+                        {{ avail.get_time_slot_display }} - {{ avail.get_status_display }}
+                    {% endif %}
+                    {% if avail.notes %}
+                        <span title="{{ avail.notes }}" style="cursor: help;">📝</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #666; text-align: center; padding: 1rem 0;">
+        No availability set. <a href="{% url 'manage_availability' %}">Set your availability</a>
+    </p>
+    {% endif %}
+</div>
+
+<!-- Past Assignments This Month -->
+<div class="card" style="margin-top: 1rem;">
+    <h3>Completed Games This Month</h3>
+    
+    {% if past_assignments %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Game</th>
+                <th>Position</th>
+                <th>Earned</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignment in past_assignments %}
+            <tr>
+                <td>{{ assignment.game.date|date:"M d" }}</td>
+                <td>{{ assignment.game.get_time_display }}</td>
+                <td>{{ assignment.game.home_team }} vs {{ assignment.game.away_team }}</td>
+                <td>
+                    <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
+                        {{ assignment.get_position_display }}
+                    </span>
+                </td>
+                <td>${{ assignment.pay_amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot style="font-weight: bold; background-color: #f8f9fa;">
+            <tr>
+                <td colspan="4" style="text-align: right;">Total Earned This Month:</td>
+                <td>${{ total_earned_this_month|floatformat:2 }}</td>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <p style="color: #666; text-align: center; padding: 2rem 0;">No completed games this month</p>
+    {% endif %}
+</div>
+{% endblock %}

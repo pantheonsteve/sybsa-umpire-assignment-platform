@@ -1,0 +1,278 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Import {{ model_name }} - Umpire Assigner{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Import {{ model_name }}</h2>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label for="csv_file" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                Select CSV File for {{ model_name }}:
+            </label>
+            <input type="file" name="csv_file" id="csv_file" accept=".csv" required 
+                   style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 100%; max-width: 400px;">
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn">Import {{ model_name }}</button>
+            <a href="{% url 'csv_import_home' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="background-color: #f8f9fa; margin-top: 1.5rem;">
+    <h3>CSV Format for {{ model_name }}</h3>
+    
+    {% if model_type == 'league_admins' %}
+    <p>Your CSV file should have these columns:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>first_name</code></td>
+                <td>Administrator's first name</td>
+                <td>John</td>
+            </tr>
+            <tr>
+                <td><code>last_name</code></td>
+                <td>Administrator's last name</td>
+                <td>Smith</td>
+            </tr>
+            <tr>
+                <td><code>email</code></td>
+                <td>Email address (unique identifier)</td>
+                <td>john.smith@league.com</td>
+            </tr>
+            <tr>
+                <td><code>phone</code></td>
+                <td>Phone number (digits only)</td>
+                <td>5551234567</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    {% elif model_type == 'coaches' %}
+    <p>Your CSV file should have these columns:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>first_name</code></td>
+                <td>Coach's first name</td>
+                <td>Mike</td>
+            </tr>
+            <tr>
+                <td><code>last_name</code></td>
+                <td>Coach's last name</td>
+                <td>Williams</td>
+            </tr>
+            <tr>
+                <td><code>email</code></td>
+                <td>Email address (unique identifier)</td>
+                <td>mike.williams@email.com</td>
+            </tr>
+            <tr>
+                <td><code>phone</code></td>
+                <td>Phone number (digits only)</td>
+                <td>5552345678</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    {% elif model_type == 'towns' %}
+    <p>Your CSV file should have these columns:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>name</code></td>
+                <td>Town name</td>
+                <td>Springfield</td>
+            </tr>
+            <tr>
+                <td><code>league_admin_email</code></td>
+                <td>Email of the league admin (optional)</td>
+                <td>john.smith@league.com</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    {% elif model_type == 'teams' %}
+    <p>Your CSV file should have these columns:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>town</code></td>
+                <td>Town name (must exist)</td>
+                <td>Springfield</td>
+            </tr>
+            <tr>
+                <td><code>level</code></td>
+                <td>Team level (AAA, Minors, or Majors)</td>
+                <td>AAA</td>
+            </tr>
+            <tr>
+                <td><code>name</code></td>
+                <td>Team name (optional)</td>
+                <td>Tigers</td>
+            </tr>
+            <tr>
+                <td><code>coach_email</code></td>
+                <td>Coach's email (optional)</td>
+                <td>mike.williams@email.com</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    {% elif model_type == 'umpires' %}
+    <p>Your CSV file should have these columns:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>first_name</code></td>
+                <td>Umpire's first name</td>
+                <td>Tom</td>
+            </tr>
+            <tr>
+                <td><code>last_name</code></td>
+                <td>Umpire's last name</td>
+                <td>Anderson</td>
+            </tr>
+            <tr>
+                <td><code>email</code></td>
+                <td>Email address (unique identifier)</td>
+                <td>tom.anderson@email.com</td>
+            </tr>
+            <tr>
+                <td><code>phone</code></td>
+                <td>Phone number (digits only)</td>
+                <td>5556789012</td>
+            </tr>
+            <tr>
+                <td><code>adult</code></td>
+                <td>Is adult? (yes/no)</td>
+                <td>yes</td>
+            </tr>
+            <tr>
+                <td><code>patched</code></td>
+                <td>Is patched? (yes/no)</td>
+                <td>yes</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    {% elif model_type == 'games' %}
+    <p>Your CSV file should have these columns:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>home_town</code></td>
+                <td>Home team's town</td>
+                <td>Springfield</td>
+            </tr>
+            <tr>
+                <td><code>home_level</code></td>
+                <td>Home team's level</td>
+                <td>AAA</td>
+            </tr>
+            <tr>
+                <td><code>home_team_name</code></td>
+                <td>Home team's name (optional, required if town has multiple teams at same level)</td>
+                <td>Tigers</td>
+            </tr>
+            <tr>
+                <td><code>away_town</code></td>
+                <td>Away team's town</td>
+                <td>Riverside</td>
+            </tr>
+            <tr>
+                <td><code>away_level</code></td>
+                <td>Away team's level</td>
+                <td>AAA</td>
+            </tr>
+            <tr>
+                <td><code>away_team_name</code></td>
+                <td>Away team's name (optional, required if town has multiple teams at same level)</td>
+                <td>Eagles</td>
+            </tr>
+            <tr>
+                <td><code>date</code></td>
+                <td>Game date (YYYY-MM-DD)</td>
+                <td>2025-01-10</td>
+            </tr>
+            <tr>
+                <td><code>time</code></td>
+                <td>Game time (8:00, 10:15, 12:30, or 2:45)</td>
+                <td>8:00</td>
+            </tr>
+            <tr>
+                <td><code>field</code></td>
+                <td>Field (A, B, C, D, or E)</td>
+                <td>A</td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+    
+    <div style="margin-top: 1.5rem; padding: 1rem; background-color: #e9ecef; border-radius: 4px;">
+        <h4>Example CSV Content:</h4>
+        <pre style="background-color: white; padding: 1rem; border-radius: 4px; overflow-x: auto;">{% if model_type == 'league_admins' %}first_name,last_name,email,phone
+John,Smith,john.smith@league.com,5551234567
+Sarah,Johnson,sarah.johnson@league.com,5559876543{% elif model_type == 'coaches' %}first_name,last_name,email,phone
+Mike,Williams,mike.williams@email.com,5552345678
+Lisa,Brown,lisa.brown@email.com,5553456789{% elif model_type == 'towns' %}name,league_admin_email
+Springfield,john.smith@league.com
+Riverside,sarah.johnson@league.com{% elif model_type == 'teams' %}town,level,name,coach_email
+Springfield,AAA,Tigers,mike.williams@email.com
+Springfield,Majors,Lions,lisa.brown@email.com{% elif model_type == 'umpires' %}first_name,last_name,email,phone,adult,patched
+Tom,Anderson,tom.anderson@email.com,5556789012,yes,yes
+Emily,Martinez,emily.martinez@email.com,5557890123,yes,no{% elif model_type == 'games' %}home_town,home_level,home_team_name,away_town,away_level,away_team_name,date,time,field
+Springfield,AAA,Tigers,Riverside,AAA,Eagles,2025-01-10,8:00,A
+Springfield,Majors,Lions,Riverside,Majors,Hawks,2025-01-10,10:15,B
+Springfield,Minors,,Riverside,Minors,,2025-01-10,12:30,C{% endif %}</pre>
+    </div>
+</div>
+{% endblock %}
