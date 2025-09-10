@@ -49,10 +49,10 @@
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
             <div>
-                <label for="home_team">Home Team:</label>
-                <select name="home_team" id="home_team" class="form-input" required>
+                <label for="away_team">Away Team:</label>
+                <select name="away_team" id="away_team" class="form-input" required>
                     {% for team in teams %}
-                        <option value="{{ team.id }}" {% if game.home_team.id == team.id %}selected{% endif %}>
+                        <option value="{{ team.id }}" {% if game.away_team.id == team.id %}selected{% endif %}>
                             {{ team }}
                         </option>
                     {% endfor %}
@@ -60,10 +60,10 @@
             </div>
             
             <div>
-                <label for="away_team">Away Team:</label>
-                <select name="away_team" id="away_team" class="form-input" required>
+                <label for="home_team">Home Team:</label>
+                <select name="home_team" id="home_team" class="form-input" required>
                     {% for team in teams %}
-                        <option value="{{ team.id }}" {% if game.away_team.id == team.id %}selected{% endif %}>
+                        <option value="{{ team.id }}" {% if game.home_team.id == team.id %}selected{% endif %}>
                             {{ team }}
                         </option>
                     {% endfor %}
