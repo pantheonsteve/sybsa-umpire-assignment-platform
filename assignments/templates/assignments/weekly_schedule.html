@@ -119,18 +119,18 @@
                 <tr>
                     <th>Time</th>
                     <th>Field</th>
-                    <th>Home Team</th>
                     <th>Away Team</th>
+                    <th>Home Team</th>
                     <th>Umpires</th>
                 </tr>
             </thead>
             <tbody>
                 {% for game in games %}
-                <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}'"{% endif %}>
+                <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}?week={{ week_offset }}'"{% endif %}>
                     <td>{{ game.get_time_display }}</td>
                     <td>{{ game.get_field_display }}</td>
-                    <td>{{ game.home_team }}</td>
                     <td>{{ game.away_team }}</td>
+                    <td>{{ game.home_team }}</td>
                     <td>
                         {% if game.assignments.all %}
                             {% for assignment in game.assignments.all %}
@@ -191,19 +191,19 @@
                         </a>
                     </th>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=home&order={% if sort_by == 'home' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                        <a href="?week={{ week_offset }}&sort=away&order={% if sort_by == 'away' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
                            style="color: inherit; text-decoration: none;">
-                            Home Team
-                            {% if sort_by == 'home' %}
+                            Away Team
+                            {% if sort_by == 'away' %}
                                 {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
                             {% endif %}
                         </a>
                     </th>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=away&order={% if sort_by == 'away' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                        <a href="?week={{ week_offset }}&sort=home&order={% if sort_by == 'home' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
                            style="color: inherit; text-decoration: none;">
-                            Away Team
-                            {% if sort_by == 'away' %}
+                            Home Team
+                            {% if sort_by == 'home' %}
                                 {% if sort_order == 'asc' %}↑{% else %}↓{% endif %}
                             {% endif %}
                         </a>
@@ -221,12 +221,12 @@
             </thead>
             <tbody>
                 {% for game in games_list %}
-                <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}'"{% endif %}>
+                <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}?week={{ week_offset }}'"{% endif %}>
                     <td>{{ game.date|date:"M d, Y" }}</td>
                     <td>{{ game.get_time_display }}</td>
                     <td>{{ game.get_field_display }}</td>
-                    <td>{{ game.home_team }}</td>
                     <td>{{ game.away_team }}</td>
+                    <td>{{ game.home_team }}</td>
                     <td>
                         {% if game.assignments.all %}
                             {% for assignment in game.assignments.all %}

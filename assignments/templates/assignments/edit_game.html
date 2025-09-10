@@ -18,6 +18,7 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="update">
         <input type="hidden" name="next" value="{{ referrer }}">
+        <input type="hidden" name="week" value="{{ week_param }}">
         
         <h3>Game Details</h3>
         

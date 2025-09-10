@@ -878,6 +878,9 @@ def edit_game(request, game_id):
     """Edit a game and its umpire assignments."""
     game = get_object_or_404(Game, pk=game_id)
     
+    # Get the week parameter to redirect back to the same week
+    week_param = request.GET.get('week', request.POST.get('week', 0))
+    
     if request.method == 'POST':
         action = request.POST.get('action')
         
@@ -885,7 +888,7 @@ def edit_game(request, game_id):
             # Delete the game
             game.delete()
             messages.success(request, 'Game deleted successfully')
-            return redirect('weekly_schedule')
+            return redirect(f'/schedule/?week={week_param}')
         
         elif action == 'update':
             # Update game details
@@ -899,7 +902,7 @@ def edit_game(request, game_id):
                 # Validate teams are different
                 if game.home_team_id == game.away_team_id:
                     messages.error(request, 'Home and away teams cannot be the same')
-                    return redirect('edit_game', game_id=game_id)
+                    return redirect(f'/games/{game_id}/edit/?week={week_param}')
                 
                 game.save()
                 
@@ -945,11 +948,11 @@ def edit_game(request, game_id):
                 if 'unassigned' in next_url:
                     return redirect('unassigned_games')
                 else:
-                    return redirect('weekly_schedule')
+                    return redirect(f'/schedule/?week={week_param}')
                     
             except Exception as e:
                 messages.error(request, f'Error updating game: {str(e)}')
-                return redirect('edit_game', game_id=game_id)
+                return redirect(f'/games/{game_id}/edit/?week={week_param}')
     
     # Get data for form
     teams = Team.objects.select_related('town').order_by('town__name', 'level', 'name')
@@ -1009,7 +1012,8 @@ def edit_game(request, game_id):
         'time_choices': time_choices,
         'field_choices': field_choices,
         'assignments': assignment_data,
-        'referrer': request.META.get('HTTP_REFERER', '/')
+        'referrer': request.META.get('HTTP_REFERER', '/'),
+        'week_param': week_param
     }
     
     return render(request, 'assignments/edit_game.html', context)
