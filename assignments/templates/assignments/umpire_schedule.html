@@ -1,0 +1,263 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Umpire Schedule - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Umpire Schedule & Payment Tracking</h2>
+
+<!-- Filters -->
+<div class="card" style="background-color: #f8f9fa; margin-bottom: 1rem;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: end; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+            <label for="date" style="font-size: 0.9rem; margin-bottom: 0.25rem; display: block;">Filter by Date:</label>
+            <input type="date" name="date" id="date" value="{{ selected_date }}" 
+                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        
+        <div style="flex: 1; min-width: 200px;">
+            <label for="umpire" style="font-size: 0.9rem; margin-bottom: 0.25rem; display: block;">Filter by Umpire:</label>
+            <select name="umpire" id="umpire" 
+                    style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">All Umpires</option>
+                {% for ump in all_umpires %}
+                    <option value="{{ ump.id }}" {% if selected_umpire == ump.id|stringformat:"s" %}selected{% endif %}>
+                        {{ ump }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn">Apply Filters</button>
+            <a href="{% url 'umpire_schedule' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="card" style="background-color: {% if message.tags == 'success' %}#d4edda{% elif message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %}; border-color: {% if message.tags == 'success' %}#c3e6cb{% elif message.tags == 'error' %}#f5c6cb{% else %}#bee5eb{% endif %}; color: {% if message.tags == 'success' %}#155724{% elif message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %}; margin-bottom: 1rem;">
+        {{ message }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Umpire Schedules -->
+{% if umpire_schedules %}
+    {% for umpire, dates in umpire_schedules.items %}
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <h3 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            {{ umpire }}
+            {% if umpire.patched %}<span class="badge badge-info">Patched</span>{% endif %}
+            {% if umpire.adult %}<span class="badge badge-warning">Adult</span>{% endif %}
+            {% if umpire.is_assigner %}<span class="badge badge-secondary">Assigner</span>{% endif %}
+        </h3>
+        
+        {% for game_date, date_info in dates.items %}
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px;">
+            <h4 style="color: #34495e; margin-bottom: 1rem;">
+                {{ game_date|date:"l, F j, Y" }}
+                <span style="float: right; color: #27ae60; font-weight: bold;">
+                    Total: ${{ date_info.total_pay|floatformat:2 }}
+                </span>
+            </h4>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #ecf0f1;">
+                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Time</th>
+                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Field</th>
+                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Game</th>
+                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Position</th>
+                        <th style="padding: 0.5rem; text-align: right; border-bottom: 2px solid #bdc3c7;">Pay</th>
+                        {% if user.is_staff %}
+                        <th style="padding: 0.5rem; text-align: center; border-bottom: 2px solid #bdc3c7;">Payment Status</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in date_info.assignments %}
+                    <tr>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;">
+                            {{ assignment.game.get_time_display }}
+                        </td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;">
+                            {{ assignment.game.get_field_display }}
+                        </td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;">
+                            {{ assignment.game.away_team }} vs {{ assignment.game.home_team }}
+                        </td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;">
+                            <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
+                                {{ assignment.get_position_display }}
+                            </span>
+                            {% if assignment.worked_status != 'assigned' %}
+                                <span class="badge {% if assignment.worked_status == 'worked' %}badge-success{% elif assignment.worked_status == 'no_show' %}badge-danger{% else %}badge-secondary{% endif %}" style="margin-left: 0.25rem;">
+                                    {{ assignment.get_worked_status_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.5rem; text-align: right; border-bottom: 1px solid #ecf0f1; font-weight: bold;">
+                            {% if assignment.worked_status == 'worked' %}
+                                <span style="color: #27ae60;">${{ assignment.pay_amount|floatformat:2 }}</span>
+                            {% elif assignment.worked_status == 'assigned' %}
+                                <span style="color: #7f8c8d;" title="Payment pending game completion">${{ assignment.pay_amount|floatformat:2 }}*</span>
+                            {% else %}
+                                <span style="color: #e74c3c; text-decoration: line-through;">$0.00</span>
+                            {% endif %}
+                        </td>
+                        {% if user.is_staff %}
+                        <td style="padding: 0.5rem; text-align: center; border-bottom: 1px solid #ecf0f1;">
+                            {% with payment=date_info.payments|first %}
+                                {% if payment and payment.paid %}
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                        <span style="color: #27ae60; font-weight: bold;">✓ Paid</span>
+                                        {% if payment.payment_method %}
+                                            <span class="badge" style="background-color: #ecf0f1; color: #34495e; font-size: 0.75rem;">
+                                                {{ payment.get_payment_method_display }}
+                                            </span>
+                                        {% endif %}
+                                        <form method="post" style="display: inline-block;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                            <button type="submit" name="action" value="mark_unpaid" 
+                                                    class="btn btn-small" 
+                                                    style="background-color: #e74c3c; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                                                Mark Unpaid
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% if payment.notes %}
+                                        <div style="font-size: 0.75rem; color: #7f8c8d; margin-top: 0.25rem;">
+                                            Note: {{ payment.notes }}
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="payment-form" id="payment-form-{{ assignment.id }}">
+                                        <span style="color: #e67e22; font-weight: bold; margin-right: 0.5rem;">Payment Due</span>
+                                        <button type="button" onclick="togglePaymentOptions({{ assignment.id }})" 
+                                                class="btn btn-small" 
+                                                style="background-color: #27ae60; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                                            Mark Paid ▼
+                                        </button>
+                                        <div id="payment-options-{{ assignment.id }}" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background-color: #f8f9fa; border-radius: 4px;">
+                                            <form method="post">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                                <input type="hidden" name="action" value="mark_paid">
+                                                
+                                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                                    <select name="payment_method" required style="flex: 1; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                                        <option value="">Select Method</option>
+                                                        <option value="check">Check</option>
+                                                        <option value="cash">Cash</option>
+                                                        <option value="venmo">Venmo</option>
+                                                        <option value="other">Other</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-small" style="background-color: #27ae60; padding: 0.25rem 0.5rem; font-size: 0.85rem;">Confirm</button>
+                                                </div>
+                                                
+                                                <input type="text" name="payment_notes" placeholder="Notes (check #, date, etc.)" 
+                                                       style="width: 100%; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                                            </form>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Payment Summary for this date -->
+            <div style="margin-top: 1rem; padding: 0.75rem; background-color: #fff; border-left: 4px solid {% if date_info.total_pay > 0 %}{% if date_info.payments and date_info.payments.0.paid %}#27ae60{% else %}#e67e22{% endif %}{% else %}#95a5a6{% endif %};">
+                <strong>Payment Status:</strong>
+                {% with payment=date_info.payments|first %}
+                    {% if payment and payment.paid %}
+                        <span style="color: #27ae60; font-weight: bold;">
+                            ✓ Paid on {{ payment.paid_date|date:"M j, Y" }}
+                            {% if payment.payment_method %}
+                                via {{ payment.get_payment_method_display }}
+                            {% endif %}
+                        </span>
+                        {% if payment.notes %}
+                            <span style="color: #7f8c8d; margin-left: 1rem;">({{ payment.notes }})</span>
+                        {% endif %}
+                    {% else %}
+                        <span style="color: #e67e22; font-weight: bold;">Payment Due - ${{ date_info.total_pay|floatformat:2 }}</span>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <p>No umpire assignments found for the selected criteria.</p>
+    </div>
+{% endif %}
+
+<style>
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-left: 0.25rem;
+}
+
+.badge-info {
+    background-color: #3498db;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.badge-success {
+    background-color: #27ae60;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+</style>
+
+<script>
+function togglePaymentOptions(assignmentId) {
+    const optionsDiv = document.getElementById('payment-options-' + assignmentId);
+    if (optionsDiv.style.display === 'none') {
+        // Hide all other payment options
+        document.querySelectorAll('[id^="payment-options-"]').forEach(div => {
+            div.style.display = 'none';
+        });
+        // Show this one
+        optionsDiv.style.display = 'block';
+    } else {
+        optionsDiv.style.display = 'none';
+    }
+}
+
+// Close payment options when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.payment-form')) {
+        document.querySelectorAll('[id^="payment-options-"]').forEach(div => {
+            div.style.display = 'none';
+        });
+    }
+});
+</script>
+{% endblock %}

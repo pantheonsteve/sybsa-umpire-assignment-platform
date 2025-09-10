@@ -94,6 +94,10 @@ else:
         }
     }
 
+# Safety check: Prevent SQLite in production
+if not DEBUG and 'sqlite' in DATABASES['default']['ENGINE']:
+    raise ValueError("SQLite cannot be used in production! Please configure DATABASE_URL environment variable.")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

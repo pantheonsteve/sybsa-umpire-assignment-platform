@@ -110,11 +110,19 @@ class Game(models.Model):
         ('E', 'Field E'),
     ]
     
+    STATUS_CHOICES = [
+        ('scheduled', 'Scheduled'),
+        ('completed', 'Completed'),
+        ('postponed', 'Postponed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
     home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='home_games')
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_games')
     date = models.DateField()
     time = models.CharField(max_length=10, choices=TIME_CHOICES)
     field = models.CharField(max_length=1, choices=FIELD_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
     
     class Meta:
         verbose_name = "Game"
@@ -139,9 +147,17 @@ class UmpireAssignment(models.Model):
         ('solo', 'Solo Umpire'),
     ]
     
+    WORKED_STATUS_CHOICES = [
+        ('assigned', 'Assigned'),
+        ('worked', 'Worked'),
+        ('no_show', 'No Show'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='assignments')
     umpire = models.ForeignKey(Umpire, on_delete=models.CASCADE, related_name='assignments')
     position = models.CharField(max_length=10, choices=POSITION_CHOICES)
+    worked_status = models.CharField(max_length=20, choices=WORKED_STATUS_CHOICES, default='assigned')
     pay_amount = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     
     class Meta:
@@ -156,20 +172,31 @@ class UmpireAssignment(models.Model):
     
     def calculate_pay(self):
         from .utils import get_pay_rate
-        return get_pay_rate(self.umpire.patched, self.position)
+        # Only calculate pay if umpire worked the game
+        if self.worked_status == 'worked':
+            return get_pay_rate(self.umpire.patched, self.position)
+        return Decimal('0.00')
     
     def __str__(self):
         return f"{self.umpire} - {self.game} ({self.position})"
 
 
 class UmpirePayment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('check', 'Check'),
+        ('cash', 'Cash'),
+        ('venmo', 'Venmo'),
+        ('other', 'Other'),
+    ]
+    
     umpire = models.ForeignKey(Umpire, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     paid = models.BooleanField(default=False)
     paid_date = models.DateField(null=True, blank=True)
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHOD_CHOICES, blank=True)
     period_start = models.DateField()
     period_end = models.DateField()
-    notes = models.TextField(blank=True)
+    notes = models.TextField(blank=True, help_text="Payment details like check number, transaction ID, etc.")
     
     class Meta:
         verbose_name = "Umpire Payment"

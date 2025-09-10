@@ -1,0 +1,215 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Complete Game - Umpire Assigner{% endblock %}
+
+{% block content %}
+<h2>Complete Game</h2>
+
+<div class="card">
+    <h3>Game Details</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+        <div>
+            <strong>Date:</strong> {{ game.date|date:"l, F j, Y" }}
+        </div>
+        <div>
+            <strong>Time:</strong> {{ game.get_time_display }}
+        </div>
+        <div>
+            <strong>Field:</strong> {{ game.get_field_display }}
+        </div>
+        <div>
+            <strong>Teams:</strong> {{ game.away_team }} vs {{ game.home_team }}
+        </div>
+        <div>
+            <strong>Current Status:</strong> 
+            <span class="badge {% if game.status == 'completed' %}badge-success{% elif game.status == 'postponed' %}badge-warning{% elif game.status == 'cancelled' %}badge-danger{% else %}badge-info{% endif %}">
+                {{ game.get_status_display }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<form method="post" id="complete-game-form">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.GET.next|default:'weekly_schedule' }}">
+    
+    <div class="card">
+        <h3>Update Game Status</h3>
+        <div style="margin-bottom: 1rem;">
+            <label for="game_status" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">
+                Game Status:
+            </label>
+            <select name="game_status" id="game_status" class="form-input" required onchange="updateUmpireDefaults()">
+                <option value="">-- Select Status --</option>
+                <option value="completed" {% if game.status == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="postponed" {% if game.status == 'postponed' %}selected{% endif %}>Postponed</option>
+                <option value="cancelled" {% if game.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+        </div>
+        
+        <p style="background-color: #f0f4f8; padding: 0.75rem; border-radius: 4px; margin-top: 1rem;">
+            <strong>Note:</strong> 
+            <ul style="margin: 0.5rem 0 0 1.5rem;">
+                <li><strong>Completed:</strong> Game was played as scheduled</li>
+                <li><strong>Postponed:</strong> Game was delayed due to weather or other reasons</li>
+                <li><strong>Cancelled:</strong> Game will not be played</li>
+            </ul>
+        </p>
+    </div>
+    
+    <div class="card">
+        <h3>Umpire Attendance & Payment Status</h3>
+        
+        {% if assignments %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f0f4f8;">
+                    <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #dee2e6;">Umpire</th>
+                    <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #dee2e6;">Position</th>
+                    <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #dee2e6;">Current Status</th>
+                    <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #dee2e6;">Update Status</th>
+                    <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid #dee2e6;">Pay Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in assignments %}
+                <tr>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid #dee2e6;">
+                        {{ assignment.umpire }}
+                        {% if assignment.umpire.patched %}
+                            <span class="badge badge-info">Patched</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid #dee2e6;">
+                        <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
+                            {{ assignment.get_position_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid #dee2e6;">
+                        <span class="badge {% if assignment.worked_status == 'worked' %}badge-success{% elif assignment.worked_status == 'no_show' %}badge-danger{% elif assignment.worked_status == 'cancelled' %}badge-warning{% else %}badge-info{% endif %}">
+                            {{ assignment.get_worked_status_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid #dee2e6;">
+                        <select name="worked_status_{{ assignment.id }}" class="form-input worked-status-select" data-assignment-id="{{ assignment.id }}">
+                            <option value="assigned" {% if assignment.worked_status == 'assigned' %}selected{% endif %}>Assigned</option>
+                            <option value="worked" {% if assignment.worked_status == 'worked' %}selected{% endif %}>Worked</option>
+                            <option value="no_show" {% if assignment.worked_status == 'no_show' %}selected{% endif %}>No Show</option>
+                            <option value="cancelled" {% if assignment.worked_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; border-bottom: 1px solid #dee2e6; font-weight: bold;">
+                        <span class="pay-amount" data-assignment-id="{{ assignment.id }}" data-base-pay="{{ assignment.calculate_pay }}">
+                            ${{ assignment.pay_amount|floatformat:2 }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="background-color: #fff4e5; padding: 1rem; border-radius: 4px; margin-top: 1rem; border-left: 4px solid #ff9800;">
+            <strong>⚠️ Important:</strong>
+            <ul style="margin: 0.5rem 0 0 1.5rem;">
+                <li>Umpires will only be paid if status is set to "Worked"</li>
+                <li>"No Show" means the umpire didn't attend - no payment due</li>
+                <li>"Cancelled" means the assignment was cancelled - no payment due</li>
+            </ul>
+        </div>
+        {% else %}
+        <p>No umpires assigned to this game.</p>
+        {% endif %}
+    </div>
+    
+    <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+        <button type="submit" class="btn" style="background-color: #27ae60;">Save Changes</button>
+        <a href="{{ request.GET.next|default:'/schedule/' }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<style>
+.form-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-left: 0.25rem;
+}
+
+.badge-info {
+    background-color: #3498db;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.badge-success {
+    background-color: #27ae60;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+</style>
+
+<script>
+function updateUmpireDefaults() {
+    const gameStatus = document.getElementById('game_status').value;
+    const workedSelects = document.querySelectorAll('.worked-status-select');
+    
+    workedSelects.forEach(select => {
+        // Only update if currently set to "assigned"
+        if (select.value === 'assigned') {
+            if (gameStatus === 'completed') {
+                select.value = 'worked';
+            } else if (gameStatus === 'cancelled') {
+                select.value = 'cancelled';
+            } else if (gameStatus === 'postponed') {
+                select.value = 'cancelled';
+            }
+        }
+    });
+    
+    updatePayAmounts();
+}
+
+function updatePayAmounts() {
+    const workedSelects = document.querySelectorAll('.worked-status-select');
+    
+    workedSelects.forEach(select => {
+        const assignmentId = select.dataset.assignmentId;
+        const paySpan = document.querySelector(`.pay-amount[data-assignment-id="${assignmentId}"]`);
+        const basePay = parseFloat(paySpan.dataset.basePay) || 0;
+        
+        if (select.value === 'worked') {
+            paySpan.textContent = '$' + basePay.toFixed(2);
+            paySpan.style.color = '#27ae60';
+        } else {
+            paySpan.textContent = '$0.00';
+            paySpan.style.color = '#e74c3c';
+        }
+    });
+}
+
+// Update pay amounts when individual umpire status changes
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.worked-status-select').forEach(select => {
+        select.addEventListener('change', updatePayAmounts);
+    });
+});
+</script>
+{% endblock %}

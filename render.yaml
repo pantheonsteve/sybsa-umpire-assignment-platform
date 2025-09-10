@@ -3,6 +3,7 @@ databases:
     databaseName: umpireassigner
     user: umpireassigner
     region: oregon
+    plan: free
 
 services:
   - type: web

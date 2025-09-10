@@ -179,9 +179,22 @@ def umpire_payments(request):
     
     umpire_data = []
     for umpire in umpires:
-        # Calculate total owed from assignments
-        total_owed = UmpireAssignment.objects.filter(
-            umpire=umpire
+        # Calculate projected payments (all assigned games, assuming they will work)
+        projected_assignments = UmpireAssignment.objects.filter(
+            umpire=umpire,
+            worked_status='assigned'
+        )
+        
+        # Calculate base pay for each assignment (even if not yet worked)
+        projected_total = 0
+        for assignment in projected_assignments:
+            from .utils import get_pay_rate
+            projected_total += get_pay_rate(assignment.umpire.patched, assignment.position)
+        
+        # Calculate actual owed from worked assignments only
+        actual_owed = UmpireAssignment.objects.filter(
+            umpire=umpire,
+            worked_status='worked'
         ).aggregate(
             total=Sum('pay_amount')
         )['total'] or 0
@@ -194,8 +207,9 @@ def umpire_payments(request):
             total=Sum('amount')
         )['total'] or 0
         
-        # Calculate unpaid amount
-        unpaid_amount = total_owed - total_paid
+        # Calculate unpaid amounts
+        actual_unpaid = actual_owed - total_paid
+        projected_unpaid = projected_total + actual_owed - total_paid
         
         # Get recent assignments
         recent_assignments = UmpireAssignment.objects.filter(
@@ -209,9 +223,11 @@ def umpire_payments(request):
         
         umpire_data.append({
             'umpire': umpire,
-            'total_owed': total_owed,
+            'projected_total': projected_total,
+            'actual_owed': actual_owed,
             'total_paid': total_paid,
-            'unpaid_amount': unpaid_amount,
+            'actual_unpaid': actual_unpaid,
+            'projected_unpaid': projected_unpaid,
             'recent_assignments': recent_assignments,
             'payment_history': payment_history,
         })
@@ -235,14 +251,42 @@ def umpire_payments(request):
         while week_start <= last_date:
             week_end = week_start + timedelta(days=6)
             
-            # Calculate total payments for this week
-            week_assignments = UmpireAssignment.objects.filter(
+            # Calculate actual payments for this week (worked assignments only)
+            week_worked_assignments = UmpireAssignment.objects.filter(
                 game__date__gte=week_start,
-                game__date__lte=week_end
+                game__date__lte=week_end,
+                worked_status='worked'
             )
             
-            week_total = week_assignments.aggregate(
+            week_actual = week_worked_assignments.aggregate(
                 total=Sum('pay_amount')
+            )['total'] or 0
+            
+            # Calculate projected payments for this week (assigned but not yet worked)
+            week_projected_assignments = UmpireAssignment.objects.filter(
+                game__date__gte=week_start,
+                game__date__lte=week_end,
+                worked_status='assigned'
+            )
+            
+            # Calculate projected amount
+            week_projected = 0
+            for assignment in week_projected_assignments:
+                from .utils import get_pay_rate
+                week_projected += get_pay_rate(assignment.umpire.patched, assignment.position)
+            
+            # Total expected for the week (actual + projected)
+            week_total = week_actual + week_projected
+            
+            # Calculate amount paid for this week
+            week_payments = UmpirePayment.objects.filter(
+                period_start__lte=week_end,
+                period_end__gte=week_start,
+                paid=True
+            )
+            
+            week_paid = week_payments.aggregate(
+                total=Sum('amount')
             )['total'] or 0
             
             # Count games and assignments for this week
@@ -251,36 +295,48 @@ def umpire_payments(request):
                 date__lte=week_end
             ).count()
             
-            assignments_count = week_assignments.count()
+            # Count all assignments (worked + assigned)
+            all_week_assignments = UmpireAssignment.objects.filter(
+                game__date__gte=week_start,
+                game__date__lte=week_end
+            )
+            
+            assignments_count = all_week_assignments.count()
             
             # Get umpire count for this week
-            umpires_this_week = week_assignments.values('umpire').distinct().count()
+            umpires_this_week = all_week_assignments.values('umpire').distinct().count()
             
             if games_count > 0:  # Only include weeks with games
                 weekly_totals.append({
                     'week_start': week_start,
                     'week_end': week_end,
-                    'total_amount': week_total,
+                    'total_projected': week_total,
+                    'total_actual': week_actual,
+                    'amount_due': week_total - week_paid,
+                    'amount_paid': week_paid,
                     'games_count': games_count,
                     'assignments_count': assignments_count,
-                    'umpires_count': umpires_this_week,
-                    'avg_per_game': week_total / games_count if games_count > 0 else 0
+                    'umpires_count': umpires_this_week
                 })
             
             # Move to next week
             week_start += timedelta(days=7)
     
     # Calculate grand totals
-    grand_total_owed = sum(u['total_owed'] for u in umpire_data)
+    grand_total_projected = sum(u['projected_total'] for u in umpire_data)
+    grand_total_actual = sum(u['actual_owed'] for u in umpire_data)
     grand_total_paid = sum(u['total_paid'] for u in umpire_data)
-    grand_total_unpaid = sum(u['unpaid_amount'] for u in umpire_data)
+    grand_total_unpaid_actual = sum(u['actual_unpaid'] for u in umpire_data)
+    grand_total_unpaid_projected = sum(u['projected_unpaid'] for u in umpire_data)
     
     context = {
         'umpire_data': umpire_data,
         'weekly_totals': weekly_totals,
-        'grand_total_owed': grand_total_owed,
+        'grand_total_projected': grand_total_projected,
+        'grand_total_actual': grand_total_actual,
         'grand_total_paid': grand_total_paid,
-        'grand_total_unpaid': grand_total_unpaid,
+        'grand_total_unpaid_actual': grand_total_unpaid_actual,
+        'grand_total_unpaid_projected': grand_total_unpaid_projected,
     }
     
     return render(request, 'assignments/umpire_payments.html', context)
@@ -1448,3 +1504,196 @@ def pending_registrations(request):
     }
     
     return render(request, 'assignments/pending_registrations.html', context)
+
+
+@login_required
+def umpire_schedule(request):
+    """View umpire schedules with payment tracking."""
+    # Get date filter from query params
+    selected_date = request.GET.get('date')
+    selected_umpire = request.GET.get('umpire')
+    
+    # Handle payment status update (staff only)
+    if request.method == 'POST' and request.user.is_staff:
+        assignment_id = request.POST.get('assignment_id')
+        action = request.POST.get('action')
+        
+        try:
+            assignment = UmpireAssignment.objects.get(id=assignment_id)
+            
+            if action == 'mark_paid':
+                payment_method = request.POST.get('payment_method', '')
+                payment_notes = request.POST.get('payment_notes', '')
+                game_date = assignment.game.date
+                
+                # Check if payment record exists for this umpire and date
+                payment, created = UmpirePayment.objects.get_or_create(
+                    umpire=assignment.umpire,
+                    period_start=game_date,
+                    period_end=game_date,
+                    defaults={
+                        'amount': assignment.pay_amount,
+                        'paid': True,
+                        'paid_date': date.today(),
+                        'payment_method': payment_method,
+                        'notes': payment_notes
+                    }
+                )
+                if not created:
+                    payment.paid = True
+                    payment.paid_date = date.today()
+                    payment.payment_method = payment_method
+                    payment.notes = payment_notes
+                    payment.amount = assignment.pay_amount
+                    payment.save()
+                
+                messages.success(request, f'Marked payment as paid for {assignment.umpire} via {payment_method}')
+            
+            elif action == 'mark_unpaid':
+                # Find and update payment record
+                try:
+                    game_date = assignment.game.date
+                    payment = UmpirePayment.objects.get(
+                        umpire=assignment.umpire,
+                        period_start=game_date,
+                        period_end=game_date
+                    )
+                    payment.paid = False
+                    payment.paid_date = None
+                    payment.payment_method = ''
+                    payment.notes = ''
+                    payment.save()
+                    messages.success(request, f'Marked payment as unpaid for {assignment.umpire}')
+                except UmpirePayment.DoesNotExist:
+                    pass
+                    
+        except UmpireAssignment.DoesNotExist:
+            messages.error(request, 'Assignment not found')
+        
+        # Redirect to preserve filters
+        redirect_url = request.path + '?'
+        if selected_date:
+            redirect_url += f'date={selected_date}&'
+        if selected_umpire:
+            redirect_url += f'umpire={selected_umpire}'
+        return redirect(redirect_url.rstrip('&?') or request.path)
+    
+    # Build base query with time ordering
+    assignments_query = UmpireAssignment.objects.select_related(
+        'game', 'umpire', 'game__home_team', 'game__away_team'
+    ).annotate(
+        time_order=Case(
+            When(game__time='8:00', then=1),
+            When(game__time='10:15', then=2),
+            When(game__time='12:30', then=3),
+            When(game__time='2:45', then=4),
+            default=99,
+            output_field=IntegerField()
+        )
+    )
+    
+    # Apply filters
+    if selected_date:
+        try:
+            filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+            assignments_query = assignments_query.filter(game__date=filter_date)
+        except ValueError:
+            messages.error(request, 'Invalid date format')
+    
+    if selected_umpire:
+        assignments_query = assignments_query.filter(umpire_id=selected_umpire)
+    
+    # Order by date and time
+    assignments_query = assignments_query.order_by('game__date', 'time_order', 'game__field')
+    
+    # Group assignments by umpire and date
+    umpire_schedules = {}
+    for assignment in assignments_query:
+        umpire = assignment.umpire
+        game_date = assignment.game.date
+        
+        if umpire not in umpire_schedules:
+            umpire_schedules[umpire] = {}
+        
+        if game_date not in umpire_schedules[umpire]:
+            umpire_schedules[umpire][game_date] = {
+                'assignments': [],
+                'total_pay': Decimal('0.00'),
+                'payments': []
+            }
+        
+        umpire_schedules[umpire][game_date]['assignments'].append(assignment)
+        # Only add to total pay if umpire worked the game
+        if assignment.worked_status == 'worked':
+            umpire_schedules[umpire][game_date]['total_pay'] += assignment.pay_amount
+    
+    # Check payment status for each umpire and date
+    for umpire in umpire_schedules:
+        for game_date in umpire_schedules[umpire]:
+            # Get payment for this specific umpire and date
+            payments = UmpirePayment.objects.filter(
+                umpire=umpire,
+                period_start__lte=game_date,
+                period_end__gte=game_date
+            )
+            umpire_schedules[umpire][game_date]['payments'] = list(payments)
+    
+    # Get all umpires for filter dropdown
+    all_umpires = Umpire.objects.all().order_by('last_name', 'first_name')
+    
+    # Get unique dates for filter dropdown
+    all_dates = Game.objects.values_list('date', flat=True).distinct().order_by('date')
+    
+    context = {
+        'umpire_schedules': umpire_schedules,
+        'selected_date': selected_date,
+        'selected_umpire': selected_umpire,
+        'all_umpires': all_umpires,
+        'all_dates': all_dates,
+    }
+    
+    return render(request, 'assignments/umpire_schedule.html', context)
+
+
+@admin_required
+def complete_game(request, game_id):
+    """Mark game as complete and track umpire attendance."""
+    game = get_object_or_404(Game, id=game_id)
+    
+    if request.method == 'POST':
+        # Update game status
+        game_status = request.POST.get('game_status')
+        if game_status in ['completed', 'postponed', 'cancelled']:
+            game.status = game_status
+            game.save()
+            
+            # Update each umpire assignment
+            for assignment in game.assignments.all():
+                assignment_id = str(assignment.id)
+                worked_status = request.POST.get(f'worked_status_{assignment_id}')
+                
+                if worked_status in ['worked', 'no_show', 'cancelled']:
+                    assignment.worked_status = worked_status
+                    
+                    # Recalculate pay based on worked status
+                    if worked_status == 'worked':
+                        assignment.pay_amount = assignment.calculate_pay()
+                    else:
+                        assignment.pay_amount = Decimal('0.00')
+                    
+                    assignment.save()
+            
+            messages.success(request, f'Game {game} has been marked as {game.get_status_display()}')
+            
+            # Redirect back to schedule or specified return URL
+            next_url = request.POST.get('next', 'weekly_schedule')
+            return redirect(next_url)
+    
+    context = {
+        'game': game,
+        'assignments': game.assignments.all().select_related('umpire'),
+        'status_choices': Game.STATUS_CHOICES,
+        'worked_status_choices': UmpireAssignment.WORKED_STATUS_CHOICES,
+    }
+    
+    return render(request, 'assignments/complete_game.html', context)

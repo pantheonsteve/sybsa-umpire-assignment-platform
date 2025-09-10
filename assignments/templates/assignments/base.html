@@ -359,12 +359,13 @@
                             <span class="nav-dropdown-toggle">Umpires</span>
                             <div class="nav-dropdown-menu">
                                 <a href="{% url 'availability_grid' %}">Availability Grid</a>
+                                <a href="{% url 'umpire_schedule' %}">Umpire Schedule</a>
                                 <a href="{% url 'umpire_payments' %}">Payment Report</a>
                             </div>
                         </div>
                         
                         {% if user.is_staff %}
-                            <a href="/admin/">Django Admin</a>
+                            <a href="/admin/">Admin</a>
                         {% endif %}
                     {% endif %}
                     <a href="{% url 'logout' %}" style="background-color: rgba(255, 255, 255, 0.1);">

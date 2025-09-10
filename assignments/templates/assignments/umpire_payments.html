@@ -15,8 +15,10 @@
                 <th style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">Games</th>
                 <th style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">Assignments</th>
                 <th style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">Umpires</th>
-                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Total Payments</th>
-                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Avg/Game</th>
+                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Projected Total</th>
+                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Actual Earned</th>
+                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Amount Paid</th>
+                <th style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">Amount Due</th>
             </tr>
         </thead>
         <tbody>
@@ -26,12 +28,14 @@
                 <td style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">{{ week.games_count }}</td>
                 <td style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">{{ week.assignments_count }}</td>
                 <td style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">{{ week.umpires_count }}</td>
-                <td style="color: white; padding: 0.75rem; text-align: right; font-weight: bold; background: transparent; border: none;">${{ week.total_amount|floatformat:2 }}</td>
-                <td style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">${{ week.avg_per_game|floatformat:2 }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: right; font-weight: bold; background: transparent; border: none;">${{ week.total_projected|floatformat:2 }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none;">${{ week.total_actual|floatformat:2 }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none; color: #90EE90;">${{ week.amount_paid|floatformat:2 }}</td>
+                <td style="color: white; padding: 0.75rem; text-align: right; background: transparent; border: none; color: #FFB6C1;">${{ week.amount_due|floatformat:2 }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">No payment data available yet</td>
+                <td colspan="8" style="color: white; padding: 0.75rem; text-align: center; background: transparent; border: none;">No payment data available yet</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -50,25 +54,41 @@
 
 <!-- Grand Totals Summary -->
 <div class="card" style="background-color: #f8f9fa;">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+    <h3 style="margin-bottom: 1rem;">Payment Summary</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem;">
         <div style="text-align: center;">
-            <h4 style="color: #495057; margin: 0;">Total Owed</h4>
-            <p style="font-size: 2rem; font-weight: bold; color: #2c3e50; margin: 0.5rem 0;">
-                ${{ grand_total_owed|floatformat:2 }}
+            <h4 style="color: #495057; margin: 0; font-size: 0.9rem;">Projected<br/>(Scheduled Games)</h4>
+            <p style="font-size: 1.8rem; font-weight: bold; color: #3498db; margin: 0.5rem 0;">
+                ${{ grand_total_projected|floatformat:2 }}
             </p>
         </div>
         <div style="text-align: center;">
-            <h4 style="color: #495057; margin: 0;">Total Paid</h4>
-            <p style="font-size: 2rem; font-weight: bold; color: #27ae60; margin: 0.5rem 0;">
+            <h4 style="color: #495057; margin: 0; font-size: 0.9rem;">Actual Earned<br/>(Worked Games)</h4>
+            <p style="font-size: 1.8rem; font-weight: bold; color: #2c3e50; margin: 0.5rem 0;">
+                ${{ grand_total_actual|floatformat:2 }}
+            </p>
+        </div>
+        <div style="text-align: center;">
+            <h4 style="color: #495057; margin: 0; font-size: 0.9rem;">Total Paid</h4>
+            <p style="font-size: 1.8rem; font-weight: bold; color: #27ae60; margin: 0.5rem 0;">
                 ${{ grand_total_paid|floatformat:2 }}
             </p>
         </div>
         <div style="text-align: center;">
-            <h4 style="color: #495057; margin: 0;">Outstanding Balance</h4>
-            <p style="font-size: 2rem; font-weight: bold; color: #e74c3c; margin: 0.5rem 0;">
-                ${{ grand_total_unpaid|floatformat:2 }}
+            <h4 style="color: #495057; margin: 0; font-size: 0.9rem;">Due Now<br/>(Worked - Paid)</h4>
+            <p style="font-size: 1.8rem; font-weight: bold; color: #e74c3c; margin: 0.5rem 0;">
+                ${{ grand_total_unpaid_actual|floatformat:2 }}
             </p>
         </div>
+        <div style="text-align: center; border-left: 2px solid #dee2e6; padding-left: 1rem;">
+            <h4 style="color: #495057; margin: 0; font-size: 0.9rem;">Total Expected<br/>(Projected + Due)</h4>
+            <p style="font-size: 1.8rem; font-weight: bold; color: #9b59b6; margin: 0.5rem 0;">
+                ${{ grand_total_unpaid_projected|floatformat:2 }}
+            </p>
+        </div>
+    </div>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dee2e6; font-size: 0.85rem; color: #6c757d;">
+        <strong>Note:</strong> "Projected" includes payments for scheduled games not yet played. "Actual Earned" only includes games marked as completed with umpires confirmed as worked.
     </div>
 </div>
 
@@ -79,9 +99,11 @@
             <tr>
                 <th>Umpire</th>
                 <th>Status</th>
-                <th class="text-right">Total Earned</th>
+                <th class="text-right">Projected<br/><small>(Scheduled)</small></th>
+                <th class="text-right">Actual Earned<br/><small>(Worked)</small></th>
                 <th class="text-right">Total Paid</th>
-                <th class="text-right">Balance Due</th>
+                <th class="text-right">Due Now</th>
+                <th class="text-right">Total Expected</th>
             </tr>
         </thead>
         <tbody>
@@ -97,17 +119,27 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if data.unpaid_amount > 0 %}
+                    {% if data.actual_unpaid > 0 %}
                         <span class="badge badge-warning">Payment Due</span>
+                    {% elif data.projected_total > 0 %}
+                        <span class="badge badge-info">Games Scheduled</span>
                     {% else %}
                         <span class="badge badge-success">Current</span>
                     {% endif %}
                 </td>
-                <td class="text-right">${{ data.total_owed|floatformat:2 }}</td>
-                <td class="text-right">${{ data.total_paid|floatformat:2 }}</td>
+                <td class="text-right" style="color: #3498db;">${{ data.projected_total|floatformat:2 }}</td>
+                <td class="text-right">${{ data.actual_owed|floatformat:2 }}</td>
+                <td class="text-right" style="color: #27ae60;">${{ data.total_paid|floatformat:2 }}</td>
                 <td class="text-right">
-                    {% if data.unpaid_amount > 0 %}
-                        <strong>${{ data.unpaid_amount|floatformat:2 }}</strong>
+                    {% if data.actual_unpaid > 0 %}
+                        <strong style="color: #e74c3c;">${{ data.actual_unpaid|floatformat:2 }}</strong>
+                    {% else %}
+                        $0.00
+                    {% endif %}
+                </td>
+                <td class="text-right">
+                    {% if data.projected_unpaid > 0 %}
+                        <strong style="color: #9b59b6;">${{ data.projected_unpaid|floatformat:2 }}</strong>
                     {% else %}
                         $0.00
                     {% endif %}
