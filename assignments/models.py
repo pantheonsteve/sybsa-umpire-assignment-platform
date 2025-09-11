@@ -166,14 +166,15 @@ class UmpireAssignment(models.Model):
         unique_together = ['game', 'umpire']
     
     def save(self, *args, **kwargs):
-        if not self.pay_amount:
-            self.pay_amount = self.calculate_pay()
+        # Always recalculate pay amount based on current status and position
+        self.pay_amount = self.calculate_pay()
         super().save(*args, **kwargs)
     
     def calculate_pay(self):
         from .utils import get_pay_rate
-        # Only calculate pay if umpire worked the game
-        if self.worked_status == 'worked':
+        # Calculate pay for both scheduled and worked games
+        # Only exclude if explicitly cancelled or no-show
+        if self.worked_status in ['assigned', 'worked']:
             return get_pay_rate(self.umpire.patched, self.position)
         return Decimal('0.00')
     

@@ -858,11 +858,12 @@ def quick_assign_umpire(request, game_id):
                 messages.error(request, f'This game already has a {position} umpire')
                 return redirect('unassigned_games')
         
-        # Create the assignment
+        # Create the assignment with default worked_status
         assignment = UmpireAssignment.objects.create(
             game=game,
             umpire=umpire,
-            position=position
+            position=position,
+            worked_status='assigned'  # Ensure default status is set
         )
         
         messages.success(request, f'Successfully assigned {umpire} as {position} umpire to {game}')
@@ -1016,11 +1017,12 @@ def edit_game(request, game_id):
                                 assignment.save()
                                 updated_assignment_ids.append(assignment_id)
                         else:
-                            # Create new assignment
+                            # Create new assignment with default worked_status
                             UmpireAssignment.objects.create(
                                 game=game,
                                 umpire_id=umpire_ids[i],
-                                position=positions[i]
+                                position=positions[i],
+                                worked_status='assigned'  # Ensure default status is set
                             )
                 
                 # Delete assignments that were removed
