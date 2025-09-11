@@ -43,8 +43,7 @@ def weekly_schedule(request):
     filter_date = request.GET.get('filter_date', '')
     filter_time = request.GET.get('filter_time', '')
     filter_field = request.GET.get('filter_field', '')
-    filter_home_team = request.GET.get('filter_home_team', '')
-    filter_away_team = request.GET.get('filter_away_team', '')
+    filter_team = request.GET.get('filter_team', '')  # Single team filter
     filter_umpire = request.GET.get('filter_umpire', '')
     
     # Calculate the start and end of the week
@@ -80,10 +79,11 @@ def weekly_schedule(request):
         games = games.filter(time=filter_time)
     if filter_field:
         games = games.filter(field=filter_field)
-    if filter_home_team:
-        games = games.filter(home_team_id=filter_home_team)
-    if filter_away_team:
-        games = games.filter(away_team_id=filter_away_team)
+    if filter_team:
+        # Filter for games where the team is either home or away
+        games = games.filter(
+            Q(home_team_id=filter_team) | Q(away_team_id=filter_team)
+        )
     if filter_umpire:
         games = games.filter(assignments__umpire_id=filter_umpire).distinct()
     
@@ -158,8 +158,7 @@ def weekly_schedule(request):
         'filter_date': filter_date,
         'filter_time': filter_time,
         'filter_field': filter_field,
-        'filter_home_team': filter_home_team,
-        'filter_away_team': filter_away_team,
+        'filter_team': filter_team,  # Single team filter
         'filter_umpire': filter_umpire,
         # Choices for dropdowns
         'all_teams': all_teams,

@@ -5,18 +5,18 @@
 
 {% block content %}
 <div class="week-navigation">
-    <a href="?week={{ prev_week }}&sort={{ sort_by }}&order={{ sort_order }}&view={% if show_by_date %}by_date{% else %}list{% endif %}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" class="btn btn-secondary">← Previous Week</a>
+    <a href="?week={{ prev_week }}&sort={{ sort_by }}&order={{ sort_order }}&view={% if show_by_date %}by_date{% else %}list{% endif %}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}" class="btn btn-secondary">← Previous Week</a>
     <h2>Schedule for {{ start_of_week|date:"M d" }} - {{ end_of_week|date:"M d, Y" }}</h2>
-    <a href="?week={{ next_week }}&sort={{ sort_by }}&order={{ sort_order }}&view={% if show_by_date %}by_date{% else %}list{% endif %}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" class="btn btn-secondary">Next Week →</a>
+    <a href="?week={{ next_week }}&sort={{ sort_by }}&order={{ sort_order }}&view={% if show_by_date %}by_date{% else %}list{% endif %}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}" class="btn btn-secondary">Next Week →</a>
 </div>
 
 <div class="card" style="background-color: #f8f9fa; margin-bottom: 1rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <div>
             <label style="margin-right: 1rem;">View:</label>
-            <a href="?week={{ week_offset }}&view=by_date&sort={{ sort_by }}&order={{ sort_order }}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" 
+            <a href="?week={{ week_offset }}&view=by_date&sort={{ sort_by }}&order={{ sort_order }}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}" 
                class="btn btn-secondary" style="padding: 0.25rem 0.5rem; {% if show_by_date %}background-color: #3498db;{% endif %}">By Date</a>
-            <a href="?week={{ week_offset }}&view=list&sort={{ sort_by }}&order={{ sort_order }}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" 
+            <a href="?week={{ week_offset }}&view=list&sort={{ sort_by }}&order={{ sort_order }}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}" 
                class="btn btn-secondary" style="padding: 0.25rem 0.5rem; {% if not show_by_date %}background-color: #3498db;{% endif %}">All Games</a>
         </div>
         {% if not show_by_date %}
@@ -63,25 +63,12 @@
             </div>
             
             <div>
-                <label for="filter_home_team" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Home Team:</label>
-                <select name="filter_home_team" id="filter_home_team" 
+                <label for="filter_team" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Team:</label>
+                <select name="filter_team" id="filter_team" 
                         style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
                     <option value="">All Teams</option>
                     {% for team in all_teams %}
-                        <option value="{{ team.id }}" {% if filter_home_team == team.id|stringformat:"s" %}selected{% endif %}>
-                            {{ team }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div>
-                <label for="filter_away_team" style="font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Away Team:</label>
-                <select name="filter_away_team" id="filter_away_team" 
-                        style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
-                    <option value="">All Teams</option>
-                    {% for team in all_teams %}
-                        <option value="{{ team.id }}" {% if filter_away_team == team.id|stringformat:"s" %}selected{% endif %}>
+                        <option value="{{ team.id }}" {% if filter_team == team.id|stringformat:"s" %}selected{% endif %}>
                             {{ team }}
                         </option>
                     {% endfor %}
@@ -204,7 +191,7 @@
             <thead>
                 <tr>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=datetime&order={% if sort_by == 'datetime' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}" 
+                        <a href="?week={{ week_offset }}&sort=datetime&order={% if sort_by == 'datetime' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}" 
                            style="color: inherit; text-decoration: none;">
                             Date/Time
                             {% if sort_by == 'datetime' %}
@@ -213,7 +200,7 @@
                         </a>
                     </th>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=time&order={% if sort_by == 'time' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                        <a href="?week={{ week_offset }}&sort=time&order={% if sort_by == 'time' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}"
                            style="color: inherit; text-decoration: none;">
                             Time
                             {% if sort_by == 'time' %}
@@ -222,7 +209,7 @@
                         </a>
                     </th>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=field&order={% if sort_by == 'field' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                        <a href="?week={{ week_offset }}&sort=field&order={% if sort_by == 'field' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}"
                            style="color: inherit; text-decoration: none;">
                             Field
                             {% if sort_by == 'field' %}
@@ -231,7 +218,7 @@
                         </a>
                     </th>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=away&order={% if sort_by == 'away' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                        <a href="?week={{ week_offset }}&sort=away&order={% if sort_by == 'away' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}"
                            style="color: inherit; text-decoration: none;">
                             Away Team
                             {% if sort_by == 'away' %}
@@ -240,7 +227,7 @@
                         </a>
                     </th>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=home&order={% if sort_by == 'home' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                        <a href="?week={{ week_offset }}&sort=home&order={% if sort_by == 'home' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}"
                            style="color: inherit; text-decoration: none;">
                             Home Team
                             {% if sort_by == 'home' %}
@@ -249,7 +236,7 @@
                         </a>
                     </th>
                     <th>
-                        <a href="?week={{ week_offset }}&sort=umpires&order={% if sort_by == 'umpires' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_home_team={{ filter_home_team }}&filter_away_team={{ filter_away_team }}&filter_umpire={{ filter_umpire }}"
+                        <a href="?week={{ week_offset }}&sort=umpires&order={% if sort_by == 'umpires' %}{{ next_order }}{% else %}asc{% endif %}&view=list&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}"
                            style="color: inherit; text-decoration: none;">
                             Umpires
                             {% if sort_by == 'umpires' %}
