@@ -1656,8 +1656,8 @@ def umpire_schedule(request):
             }
         
         umpire_schedules[umpire][game_date]['assignments'].append(assignment)
-        # Only add to total pay if umpire worked the game
-        if assignment.worked_status == 'worked':
+        # Add to total pay for both assigned and worked games (projected and actual)
+        if assignment.worked_status in ['assigned', 'worked']:
             umpire_schedules[umpire][game_date]['total_pay'] += assignment.pay_amount
     
     # Check payment status for each umpire and date
