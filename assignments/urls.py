@@ -23,4 +23,5 @@ urlpatterns = [
     path('availability-grid/', views.availability_grid, name='availability_grid'),
     path('umpire/<int:umpire_id>/availability/edit/', views.edit_umpire_availability, name='edit_umpire_availability'),
     path('umpire-schedule/', views.umpire_schedule, name='umpire_schedule'),
+    path('assignment/<int:assignment_id>/update-pay/', views.update_assignment_pay, name='update_assignment_pay'),
 ]

@@ -57,8 +57,8 @@
         <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 8px;">
             <h4 style="color: #34495e; margin-bottom: 1rem;">
                 {{ game_date|date:"l, F j, Y" }}
-                <span style="float: right; color: #27ae60; font-weight: bold;">
-                    Total: ${{ date_info.total_pay|floatformat:2 }}
+                <span style="float: right; color: #27ae60; font-weight: bold;" class="daily-total" data-date="{{ game_date|date:'Y-m-d' }}" data-umpire-id="{{ umpire.id }}">
+                    Total: $<span class="total-value">{{ date_info.total_pay|floatformat:2 }}</span>
                 </span>
             </h4>
             
@@ -98,12 +98,23 @@
                             {% endif %}
                         </td>
                         <td style="padding: 0.5rem; text-align: right; border-bottom: 1px solid #ecf0f1; font-weight: bold;">
-                            {% if assignment.worked_status == 'worked' %}
-                                <span style="color: #27ae60;">${{ assignment.pay_amount|floatformat:2 }}</span>
-                            {% elif assignment.worked_status == 'assigned' %}
-                                <span style="color: #7f8c8d;" title="Payment pending game completion">${{ assignment.pay_amount|floatformat:2 }}*</span>
+                            {% if user.is_staff %}
+                                <div class="pay-amount-container" data-assignment-id="{{ assignment.id }}">
+                                    <span class="pay-display" style="cursor: pointer; {% if assignment.worked_status == 'worked' %}color: #27ae60;{% elif assignment.worked_status == 'assigned' %}color: #7f8c8d;{% else %}color: #e74c3c; text-decoration: line-through;{% endif %}" title="Click to edit">
+                                        $<span class="pay-value">{{ assignment.pay_amount|floatformat:2 }}</span>
+                                        {% if assignment.worked_status == 'assigned' %}*{% endif %}
+                                    </span>
+                                    <input type="number" class="pay-edit" style="display: none; width: 80px; padding: 0.25rem; border: 1px solid #3498db; border-radius: 4px;" 
+                                           value="{{ assignment.pay_amount }}" min="0" step="0.01">
+                                </div>
                             {% else %}
-                                <span style="color: #e74c3c; text-decoration: line-through;">$0.00</span>
+                                {% if assignment.worked_status == 'worked' %}
+                                    <span style="color: #27ae60;">${{ assignment.pay_amount|floatformat:2 }}</span>
+                                {% elif assignment.worked_status == 'assigned' %}
+                                    <span style="color: #7f8c8d;" title="Payment pending game completion">${{ assignment.pay_amount|floatformat:2 }}*</span>
+                                {% else %}
+                                    <span style="color: #e74c3c; text-decoration: line-through;">$0.00</span>
+                                {% endif %}
                             {% endif %}
                         </td>
                         {% if user.is_staff %}
@@ -234,6 +245,17 @@
     padding: 0.25rem 0.5rem;
     font-size: 0.85rem;
 }
+
+.pay-display:hover {
+    background-color: #f0f8ff;
+    border-radius: 4px;
+    padding: 0 4px;
+}
+
+.pay-edit:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
 </style>
 
 <script>
@@ -257,6 +279,127 @@ document.addEventListener('click', function(event) {
         document.querySelectorAll('[id^="payment-options-"]').forEach(div => {
             div.style.display = 'none';
         });
+    }
+});
+</script>
+
+<script>
+// Inline pay editing functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle clicking on pay amount to edit
+    document.querySelectorAll('.pay-display').forEach(function(element) {
+        element.addEventListener('click', function() {
+            const container = this.closest('.pay-amount-container');
+            const display = container.querySelector('.pay-display');
+            const input = container.querySelector('.pay-edit');
+            
+            display.style.display = 'none';
+            input.style.display = 'inline-block';
+            input.focus();
+            input.select();
+        });
+    });
+    
+    // Handle saving pay amount
+    document.querySelectorAll('.pay-edit').forEach(function(input) {
+        // Save on Enter key
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                savePay(this);
+            }
+        });
+        
+        // Save on blur (when clicking outside)
+        input.addEventListener('blur', function() {
+            savePay(this);
+        });
+        
+        // Cancel on Escape key
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                cancelEdit(this);
+            }
+        });
+    });
+    
+    function savePay(input) {
+        const container = input.closest('.pay-amount-container');
+        const assignmentId = container.dataset.assignmentId;
+        const newValue = input.value;
+        const display = container.querySelector('.pay-display');
+        const payValue = container.querySelector('.pay-value');
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('pay_amount', newValue);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        // Send AJAX request
+        fetch(`/assignment/${assignmentId}/update-pay/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const oldValue = parseFloat(payValue.textContent);
+                const newValueNum = parseFloat(data.new_amount);
+                const difference = newValueNum - oldValue;
+                
+                // Update display with new value
+                payValue.textContent = newValueNum.toFixed(2);
+                
+                // Update daily total if this is a worked assignment
+                const row = container.closest('tr');
+                const dateContainer = row.closest('div');
+                const dailyTotal = dateContainer.querySelector('.daily-total .total-value');
+                if (dailyTotal) {
+                    const currentTotal = parseFloat(dailyTotal.textContent);
+                    const newTotal = Math.max(0, currentTotal + difference);
+                    dailyTotal.textContent = newTotal.toFixed(2);
+                }
+                
+                // Show success feedback
+                display.style.backgroundColor = '#d4edda';
+                setTimeout(() => {
+                    display.style.backgroundColor = '';
+                }, 1000);
+            } else {
+                // Show error
+                alert('Error updating pay: ' + data.error);
+                // Revert to original value
+                input.value = payValue.textContent;
+            }
+            
+            // Hide input, show display
+            input.style.display = 'none';
+            display.style.display = 'inline';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating pay amount');
+            
+            // Hide input, show display
+            input.style.display = 'none';
+            display.style.display = 'inline';
+        });
+    }
+    
+    function cancelEdit(input) {
+        const container = input.closest('.pay-amount-container');
+        const display = container.querySelector('.pay-display');
+        const payValue = container.querySelector('.pay-value');
+        
+        // Revert to original value
+        input.value = payValue.textContent;
+        
+        // Hide input, show display
+        input.style.display = 'none';
+        display.style.display = 'inline';
     }
 });
 </script>

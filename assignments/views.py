@@ -5,8 +5,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.db.models import Sum, Q, Count, Case, When, IntegerField
 from django.db import transaction
+from django.http import JsonResponse
 from datetime import datetime, timedelta, date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 import csv
 import io
@@ -1727,3 +1728,37 @@ def complete_game(request, game_id):
     }
     
     return render(request, 'assignments/complete_game.html', context)
+
+
+@admin_required
+def update_assignment_pay(request, assignment_id):
+    """AJAX endpoint to update assignment pay amount inline."""
+    if request.method == 'POST':
+        try:
+            assignment = UmpireAssignment.objects.get(id=assignment_id)
+            new_pay = request.POST.get('pay_amount')
+            
+            if new_pay:
+                try:
+                    # Convert to Decimal and validate
+                    pay_amount = Decimal(new_pay)
+                    if pay_amount < 0:
+                        return JsonResponse({'success': False, 'error': 'Pay amount cannot be negative'})
+                    
+                    assignment.pay_amount = pay_amount
+                    assignment.save()
+                    
+                    return JsonResponse({
+                        'success': True, 
+                        'new_amount': str(pay_amount),
+                        'formatted_amount': f'${pay_amount:.2f}'
+                    })
+                except (ValueError, InvalidOperation):
+                    return JsonResponse({'success': False, 'error': 'Invalid pay amount'})
+            else:
+                return JsonResponse({'success': False, 'error': 'Pay amount is required'})
+                
+        except UmpireAssignment.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Assignment not found'})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
