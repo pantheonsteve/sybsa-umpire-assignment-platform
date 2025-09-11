@@ -5,6 +5,42 @@
 {% block content %}
 <h2>Umpire Payment Tracking</h2>
 
+<style>
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-left: 0.25rem;
+}
+
+.badge-info {
+    background-color: #3498db;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.badge-success {
+    background-color: #27ae60;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+</style>
+
 <!-- Weekly Payment Summary Grid -->
 <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
     <h3 style="color: white;">Weekly Payment Summary</h3>
@@ -151,36 +187,106 @@
 </div>
 
 {% for data in umpire_data %}
-{% if data.unpaid_amount > 0 %}
+{% if data.actual_unpaid > 0 or data.projected_total > 0 %}
 <div class="card">
     <h3>{{ data.umpire }} - Payment Details</h3>
     
-    <div class="mb-3">
-        <strong>Balance Due: ${{ data.unpaid_amount|floatformat:2 }}</strong>
+    <div class="mb-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+        <div>
+            <strong>Projected Total:</strong> <span style="color: #3498db;">${{ data.projected_total|floatformat:2 }}</span>
+        </div>
+        <div>
+            <strong>Actual Earned:</strong> ${{ data.actual_owed|floatformat:2 }}
+        </div>
+        <div>
+            <strong>Amount Paid:</strong> <span style="color: #27ae60;">${{ data.total_paid|floatformat:2 }}</span>
+        </div>
+        <div>
+            <strong>Balance Due:</strong> <span style="color: #e74c3c; font-weight: bold;">${{ data.actual_unpaid|floatformat:2 }}</span>
+        </div>
     </div>
     
-    {% if data.recent_assignments %}
-    <h4>Recent Assignments</h4>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Game</th>
-                <th>Position</th>
-                <th class="text-right">Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for assignment in data.recent_assignments %}
-            <tr>
-                <td>{{ assignment.game.date|date:"M d, Y" }}</td>
-                <td>{{ assignment.game }}</td>
-                <td>{{ assignment.get_position_display }}</td>
-                <td class="text-right">${{ assignment.pay_amount|floatformat:2 }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if data.assignments_by_date %}
+    <h4>Assignments by Date</h4>
+    <div style="max-height: 400px; overflow-y: auto;">
+        <table class="table">
+            <thead style="position: sticky; top: 0; background-color: white; z-index: 10;">
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Field</th>
+                    <th>Game</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th class="text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for date, date_info in data.assignments_by_date.items %}
+                    {% for assignment in date_info.assignments %}
+                    <tr {% if forloop.first %}style="border-top: 3px solid #3498db;"{% endif %}>
+                        {% if forloop.first %}
+                        <td rowspan="{{ date_info.assignments|length }}" style="vertical-align: top; font-weight: bold; background-color: #f8f9fa; border-right: 2px solid #dee2e6;">
+                            {{ date|date:"M d, Y" }}<br/>
+                            <small style="color: #6c757d;">{{ date|date:"l" }}</small>
+                        </td>
+                        {% endif %}
+                        <td>{{ assignment.game.get_time_display }}</td>
+                        <td>{{ assignment.game.get_field_display }}</td>
+                        <td>{{ assignment.game.away_team }} vs {{ assignment.game.home_team }}</td>
+                        <td>
+                            <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
+                                {{ assignment.get_position_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if assignment.worked_status == 'worked' %}
+                                <span class="badge badge-success">Worked</span>
+                            {% elif assignment.worked_status == 'assigned' %}
+                                <span class="badge badge-info">Scheduled</span>
+                            {% elif assignment.worked_status == 'no_show' %}
+                                <span class="badge badge-danger">No Show</span>
+                            {% else %}
+                                <span class="badge badge-secondary">{{ assignment.get_worked_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right">
+                            {% if assignment.worked_status == 'worked' %}
+                                <strong style="color: #27ae60;">${{ assignment.pay_amount|floatformat:2 }}</strong>
+                            {% elif assignment.worked_status == 'assigned' %}
+                                <span style="color: #3498db;">${{ assignment.pay_amount|floatformat:2 }}*</span>
+                            {% else %}
+                                <span style="color: #e74c3c; text-decoration: line-through;">$0.00</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if date_info.assignments|length > 1 %}
+                    <tr style="background-color: #f0f4f8; border-top: 1px solid #dee2e6;">
+                        <td></td>
+                        <td colspan="5" class="text-right" style="padding: 0.5rem; font-weight: bold;">Daily Total:</td>
+                        <td class="text-right" style="padding: 0.5rem;">
+                            {% if date_info.total_earned > 0 %}
+                                <strong style="color: #27ae60;">${{ date_info.total_earned|floatformat:2 }}</strong>
+                            {% endif %}
+                            {% if date_info.total_projected > 0 %}
+                                <span style="color: #3498db; font-weight: bold;">+${{ date_info.total_projected|floatformat:2 }}*</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if not forloop.last %}
+                    <tr>
+                        <td colspan="7" style="padding: 0; height: 10px; background-color: #ffffff;"></td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="font-size: 0.85rem; color: #6c757d; margin-top: 0.5rem;">
+            * Projected payment (game not yet worked)
+        </div>
+    </div>
     {% endif %}
     
     {% if data.payment_history %}

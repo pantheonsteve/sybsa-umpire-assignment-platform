@@ -1,4 +1,5 @@
 {% extends 'assignments/base.html' %}
+{% load phone_filters %}
 
 {% block title %}Weekly Schedule - Umpire Assigner{% endblock %}
 
@@ -132,8 +133,28 @@
                 <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}?week={{ week_offset }}'"{% endif %}>
                     <td>{{ game.get_time_display }}</td>
                     <td>{{ game.get_field_display }}</td>
-                    <td>{{ game.away_team }}</td>
-                    <td>{{ game.home_team }}</td>
+                    <td>
+                        {{ game.away_team }}
+                        {% if game.away_team.coach %}
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                Coach: {{ game.away_team.coach.first_name }} {{ game.away_team.coach.last_name }}
+                                {% if game.away_team.coach.phone %}
+                                    <br>{{ game.away_team.coach.phone|format_phone }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ game.home_team }}
+                        {% if game.home_team.coach %}
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                Coach: {{ game.home_team.coach.first_name }} {{ game.home_team.coach.last_name }}
+                                {% if game.home_team.coach.phone %}
+                                    <br>{{ game.home_team.coach.phone|format_phone }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if game.assignments.all %}
                             {% for assignment in game.assignments.all %}
@@ -247,8 +268,28 @@
                     <td>{{ game.date|date:"M d, Y" }}</td>
                     <td>{{ game.get_time_display }}</td>
                     <td>{{ game.get_field_display }}</td>
-                    <td>{{ game.away_team }}</td>
-                    <td>{{ game.home_team }}</td>
+                    <td>
+                        {{ game.away_team }}
+                        {% if game.away_team.coach %}
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                Coach: {{ game.away_team.coach.first_name }} {{ game.away_team.coach.last_name }}
+                                {% if game.away_team.coach.phone %}
+                                    <br>{{ game.away_team.coach.phone|format_phone }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ game.home_team }}
+                        {% if game.home_team.coach %}
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                Coach: {{ game.home_team.coach.first_name }} {{ game.home_team.coach.last_name }}
+                                {% if game.home_team.coach.phone %}
+                                    <br>{{ game.home_team.coach.phone|format_phone }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if game.assignments.all %}
                             {% for assignment in game.assignments.all %}

@@ -14,6 +14,7 @@ from .models import (
     Game, UmpireAssignment, Umpire, UmpirePayment,
     LeagueAdmin, Coach, Town, Team, PayRate, UmpireAvailability
 )
+from .utils import format_phone_number
 
 
 def admin_required(view_func):
@@ -65,7 +66,8 @@ def weekly_schedule(request):
             output_field=IntegerField()
         )
     ).select_related(
-        'home_team', 'away_team', 'home_team__town', 'away_team__town'
+        'home_team', 'away_team', 'home_team__town', 'away_team__town',
+        'home_team__coach', 'away_team__coach'
     ).prefetch_related(
         'assignments', 'assignments__umpire'
     )
@@ -211,7 +213,33 @@ def umpire_payments(request):
         actual_unpaid = actual_owed - total_paid
         projected_unpaid = projected_total + actual_owed - total_paid
         
-        # Get recent assignments
+        # Get all assignments grouped by date
+        all_assignments = UmpireAssignment.objects.filter(
+            umpire=umpire
+        ).select_related('game', 'game__home_team', 'game__away_team').order_by('game__date', 'game__time')
+        
+        # Group assignments by date
+        assignments_by_date = {}
+        for assignment in all_assignments:
+            date = assignment.game.date
+            if date not in assignments_by_date:
+                assignments_by_date[date] = {
+                    'assignments': [],
+                    'total_projected': Decimal('0.00'),
+                    'total_earned': Decimal('0.00')
+                }
+            
+            assignments_by_date[date]['assignments'].append(assignment)
+            
+            # Calculate payment based on worked status
+            if assignment.worked_status == 'worked':
+                assignments_by_date[date]['total_earned'] += assignment.pay_amount
+            elif assignment.worked_status == 'assigned':
+                from .utils import get_pay_rate
+                projected_pay = get_pay_rate(assignment.umpire.patched, assignment.position)
+                assignments_by_date[date]['total_projected'] += projected_pay
+        
+        # Get recent assignments (for backward compatibility)
         recent_assignments = UmpireAssignment.objects.filter(
             umpire=umpire
         ).select_related('game').order_by('-game__date')[:10]
@@ -228,6 +256,7 @@ def umpire_payments(request):
             'total_paid': total_paid,
             'actual_unpaid': actual_unpaid,
             'projected_unpaid': projected_unpaid,
+            'assignments_by_date': dict(sorted(assignments_by_date.items())),
             'recent_assignments': recent_assignments,
             'payment_history': payment_history,
         })
@@ -645,7 +674,8 @@ def unassigned_games(request):
     ).filter(
         Q(umpire_count=0) | Q(umpire_count=1)
     ).select_related(
-        'home_team', 'away_team', 'home_team__town', 'away_team__town'
+        'home_team', 'away_team', 'home_team__town', 'away_team__town',
+        'home_team__coach', 'away_team__coach'
     ).prefetch_related(
         'assignments', 'assignments__umpire'
     )
