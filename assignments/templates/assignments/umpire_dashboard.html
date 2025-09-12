@@ -3,10 +3,10 @@
 {% block title %}Umpire Dashboard - {{ umpire }}{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h2>Welcome, {{ umpire.first_name }}!</h2>
-    <div>
-        <a href="{% url 'manage_availability' %}" class="btn">Manage Availability</a>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <h2 style="margin: 0;">Welcome, {{ umpire.first_name }}!</h2>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'manage_availability' %}" class="btn" style="white-space: nowrap;">Manage Availability</a>
         <a href="{% url 'logout' %}" class="btn btn-secondary">Logout</a>
     </div>
 </div>
@@ -46,13 +46,14 @@
     <h3>Upcoming Assignments</h3>
     
     {% if upcoming_assignments %}
+    <div class="table-responsive">
     <table class="table">
         <thead>
             <tr>
                 <th>Date</th>
                 <th>Time</th>
-                <th>Field</th>
-                <th>Game</th>
+                <th class="hide-mobile">Field</th>
+                <th class="hide-mobile">Game</th>
                 <th>Position</th>
                 <th>Pay</th>
             </tr>
@@ -67,8 +68,8 @@
                     {% endif %}
                 </td>
                 <td>{{ assignment.game.get_time_display }}</td>
-                <td>{{ assignment.game.get_field_display }}</td>
-                <td>{{ assignment.game.home_team }} vs {{ assignment.game.away_team }}</td>
+                <td class="hide-mobile">{{ assignment.game.get_field_display }}</td>
+                <td class="hide-mobile">{{ assignment.game.home_team }} vs {{ assignment.game.away_team }}</td>
                 <td>
                     <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
                         {{ assignment.get_position_display }}
@@ -79,6 +80,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p style="color: #666; text-align: center; padding: 2rem 0;">No upcoming assignments</p>
     {% endif %}
@@ -128,11 +130,12 @@
     <h3>Completed Games This Month</h3>
     
     {% if past_assignments %}
+    <div class="table-responsive">
     <table class="table">
         <thead>
             <tr>
                 <th>Date</th>
-                <th>Time</th>
+                <th class="hide-mobile">Time</th>
                 <th>Game</th>
                 <th>Position</th>
                 <th>Earned</th>
@@ -160,6 +163,7 @@
             </tr>
         </tfoot>
     </table>
+    </div>
     {% else %}
     <p style="color: #666; text-align: center; padding: 2rem 0;">No completed games this month</p>
     {% endif %}

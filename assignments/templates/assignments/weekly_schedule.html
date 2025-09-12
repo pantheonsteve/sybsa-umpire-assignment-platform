@@ -11,7 +11,7 @@
 </div>
 
 <div class="card" style="background-color: #f8f9fa; margin-bottom: 1rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
         <div>
             <label style="margin-right: 1rem;">View:</label>
             <a href="?week={{ week_offset }}&view=by_date&sort={{ sort_by }}&order={{ sort_order }}&filter_date={{ filter_date }}&filter_time={{ filter_time }}&filter_field={{ filter_field }}&filter_team={{ filter_team }}&filter_umpire={{ filter_umpire }}" 
@@ -102,13 +102,15 @@
     <div class="card">
         <h3>{{ date|date:"l, F j, Y" }}</h3>
         
+        <div class="table-responsive">
         <table class="table">
             <thead>
                 <tr>
                     <th>Time</th>
                     <th>Field</th>
-                    <th>Away Team</th>
-                    <th>Home Team</th>
+                    <th class="hide-mobile">Away Team</th>
+                    <th class="hide-mobile">Home Team</th>
+                    <th class="show-mobile" style="display: none;">Teams</th>
                     <th>Umpires</th>
                     {% if user.is_staff %}
                     <th>Status</th>
@@ -120,7 +122,7 @@
                 <tr {% if user.is_staff %}style="cursor: pointer;" onclick="window.location.href='{% url 'edit_game' game.id %}?week={{ week_offset }}'"{% endif %}>
                     <td>{{ game.get_time_display }}</td>
                     <td>{{ game.get_field_display }}</td>
-                    <td>
+                    <td class="hide-mobile">
                         {{ game.away_team }}
                         {% if game.away_team.coach %}
                             <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
@@ -131,7 +133,7 @@
                             </div>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="hide-mobile">
                         {{ game.home_team }}
                         {% if game.home_team.coach %}
                             <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
@@ -141,6 +143,11 @@
                                 {% endif %}
                             </div>
                         {% endif %}
+                    </td>
+                    <td class="show-mobile" style="display: none;">
+                        <div style="font-weight: bold;">{{ game.away_team }}</div>
+                        <div style="margin: 0.25rem 0;">vs</div>
+                        <div style="font-weight: bold;">{{ game.home_team }}</div>
                     </td>
                     <td>
                         {% if game.assignments.all %}
@@ -183,10 +190,12 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
     {% endfor %}
 {% elif not show_by_date and games_list %}
     <div class="card">
+        <div class="table-responsive">
         <table class="table sortable">
             <thead>
                 <tr>
@@ -255,7 +264,7 @@
                     <td>{{ game.date|date:"M d, Y" }}</td>
                     <td>{{ game.get_time_display }}</td>
                     <td>{{ game.get_field_display }}</td>
-                    <td>
+                    <td class="hide-mobile">
                         {{ game.away_team }}
                         {% if game.away_team.coach %}
                             <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
@@ -266,7 +275,7 @@
                             </div>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="hide-mobile">
                         {{ game.home_team }}
                         {% if game.home_team.coach %}
                             <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
@@ -276,6 +285,11 @@
                                 {% endif %}
                             </div>
                         {% endif %}
+                    </td>
+                    <td class="show-mobile" style="display: none;">
+                        <div style="font-weight: bold;">{{ game.away_team }}</div>
+                        <div style="margin: 0.25rem 0;">vs</div>
+                        <div style="font-weight: bold;">{{ game.home_team }}</div>
                     </td>
                     <td>
                         {% if game.assignments.all %}
@@ -318,6 +332,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 {% else %}
     <div class="card">

@@ -62,12 +62,13 @@
                 </span>
             </h4>
             
-            <table style="width: 100%; border-collapse: collapse;">
+            <div class="table-responsive">
+            <table style="width: 100%; border-collapse: collapse; min-width: 500px;">
                 <thead>
                     <tr style="background-color: #ecf0f1;">
                         <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Time</th>
                         <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Field</th>
-                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Game</th>
+                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;" class="hide-mobile">Game</th>
                         <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid #bdc3c7;">Position</th>
                         <th style="padding: 0.5rem; text-align: right; border-bottom: 2px solid #bdc3c7;">Pay</th>
                         {% if user.is_staff %}
@@ -84,7 +85,7 @@
                         <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;">
                             {{ assignment.game.get_field_display }}
                         </td>
-                        <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;">
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;" class="hide-mobile">
                             {{ assignment.game.away_team }} vs {{ assignment.game.home_team }}
                         </td>
                         <td style="padding: 0.5rem; border-bottom: 1px solid #ecf0f1;">
@@ -181,6 +182,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
             
             <!-- Payment Summary for this date -->
             <div style="margin-top: 1rem; padding: 0.75rem; background-color: #fff; border-left: 4px solid {% if date_info.total_pay > 0 %}{% if date_info.payments and date_info.payments.0.paid %}#27ae60{% else %}#e67e22{% endif %}{% else %}#95a5a6{% endif %};">
@@ -212,6 +214,39 @@
 {% endif %}
 
 <style>
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    .payment-form {
+        flex-direction: column;
+    }
+    
+    .payment-form button {
+        width: 100%;
+    }
+    
+    #payment-options-{{ assignment.id }} form > div {
+        flex-direction: column;
+    }
+    
+    #payment-options-{{ assignment.id }} select {
+        width: 100%;
+    }
+    
+    .daily-total {
+        display: block;
+        float: none !important;
+        margin-top: 0.5rem;
+    }
+    
+    table {
+        font-size: 0.75rem;
+    }
+    
+    td, th {
+        padding: 0.25rem !important;
+    }
+}
+
 .badge {
     display: inline-block;
     padding: 0.25rem 0.5rem;
