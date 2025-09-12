@@ -68,8 +68,8 @@
                     {% endif %}
                 </td>
                 <td>{{ assignment.game.get_time_display }}</td>
-                <td class="hide-mobile">{{ assignment.game.get_field_display }}</td>
-                <td class="hide-mobile">{{ assignment.game.home_team }} vs {{ assignment.game.away_team }}</td>
+                <td>{{ assignment.game.get_field_display }}</td>
+                <td>{{ assignment.game.home_team }} vs {{ assignment.game.away_team }}</td>
                 <td>
                     <span class="badge {% if assignment.position == 'plate' %}badge-info{% elif assignment.position == 'base' %}badge-warning{% else %}badge-success{% endif %}">
                         {{ assignment.get_position_display }}
