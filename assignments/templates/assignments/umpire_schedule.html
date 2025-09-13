@@ -294,6 +294,31 @@
 </style>
 
 <script>
+// Force refresh when navigating back to this page using browser back/forward buttons
+// This ensures we always show fresh data after assignments are changed elsewhere
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        // Page was loaded from cache (back/forward navigation)
+        window.location.reload();
+    }
+});
+
+// Also refresh if the page becomes visible after being hidden (tab switching)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // Check if we should refresh based on a timestamp
+        const lastUpdate = sessionStorage.getItem('umpireScheduleLastUpdate');
+        const now = Date.now();
+        if (lastUpdate && (now - parseInt(lastUpdate)) > 5000) {  // More than 5 seconds old
+            window.location.reload();
+        }
+    }
+});
+
+// Set timestamp when page loads
+window.addEventListener('load', function() {
+    sessionStorage.setItem('umpireScheduleLastUpdate', Date.now());
+});
 function togglePaymentOptions(assignmentId) {
     const optionsDiv = document.getElementById('payment-options-' + assignmentId);
     if (optionsDiv.style.display === 'none') {

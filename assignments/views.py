@@ -975,6 +975,15 @@ def edit_game(request, game_id):
             # Delete the game
             game.delete()
             messages.success(request, 'Game deleted successfully')
+            
+            # Check where to redirect based on referrer
+            referer = request.META.get('HTTP_REFERER', '')
+            if 'umpire-schedule' in referer:
+                # Preserve any query parameters from the umpire-schedule page
+                if '?' in referer:
+                    query_string = referer.split('?')[1]
+                    return redirect(f'/umpire-schedule/?{query_string}')
+                return redirect('umpire_schedule')
             return redirect(f'/schedule/?week={week_param}')
         
         elif action == 'update':
@@ -1031,9 +1040,18 @@ def edit_game(request, game_id):
                 
                 messages.success(request, 'Game updated successfully')
                 
-                # Check where to redirect based on referrer
-                next_url = request.POST.get('next', 'weekly_schedule')
-                if 'unassigned' in next_url:
+                # Check where to redirect based on referrer or next parameter
+                next_url = request.POST.get('next', '')
+                referer = request.META.get('HTTP_REFERER', '')
+                
+                # If coming from umpire-schedule, redirect back there
+                if 'umpire-schedule' in next_url or 'umpire-schedule' in referer:
+                    # Preserve any query parameters from the umpire-schedule page
+                    if '?' in referer:
+                        query_string = referer.split('?')[1]
+                        return redirect(f'/umpire-schedule/?{query_string}')
+                    return redirect('umpire_schedule')
+                elif 'unassigned' in next_url:
                     return redirect('unassigned_games')
                 else:
                     return redirect(f'/schedule/?week={week_param}')
@@ -1684,7 +1702,12 @@ def umpire_schedule(request):
         'all_dates': all_dates,
     }
     
-    return render(request, 'assignments/umpire_schedule.html', context)
+    # Add cache control headers to prevent browser caching
+    response = render(request, 'assignments/umpire_schedule.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 @admin_required
