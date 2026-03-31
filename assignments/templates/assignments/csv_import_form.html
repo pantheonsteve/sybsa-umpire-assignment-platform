@@ -255,6 +255,50 @@
             </tr>
         </tbody>
     </table>
+    
+    {% elif model_type == 'umpire_assignments' %}
+    <p>Your CSV file should have these columns:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>umpire_email</code></td>
+                <td>Umpire's email (must exist)</td>
+                <td>tom.anderson@email.com</td>
+            </tr>
+            <tr>
+                <td><code>game_date</code></td>
+                <td>Game date (YYYY-MM-DD)</td>
+                <td>2025-01-10</td>
+            </tr>
+            <tr>
+                <td><code>game_time</code></td>
+                <td>Game time (8:00, 10:15, 12:30, or 2:45)</td>
+                <td>8:00</td>
+            </tr>
+            <tr>
+                <td><code>game_field</code></td>
+                <td>Game field (A, B, C, D, or E)</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td><code>position</code></td>
+                <td>Umpire position (plate, base, or solo)</td>
+                <td>plate</td>
+            </tr>
+            <tr>
+                <td><code>worked_status</code></td>
+                <td>Status (assigned, worked, no_show, cancelled) - optional, defaults to assigned</td>
+                <td>assigned</td>
+            </tr>
+        </tbody>
+    </table>
     {% endif %}
     
     <div style="margin-top: 1.5rem; padding: 1rem; background-color: #e9ecef; border-radius: 4px;">
@@ -272,7 +316,10 @@ Tom,Anderson,tom.anderson@email.com,5556789012,yes,yes
 Emily,Martinez,emily.martinez@email.com,5557890123,yes,no{% elif model_type == 'games' %}home_town,home_level,home_team_name,away_town,away_level,away_team_name,date,time,field
 Springfield,AAA,Tigers,Riverside,AAA,Eagles,2025-01-10,8:00,A
 Springfield,Majors,Lions,Riverside,Majors,Hawks,2025-01-10,10:15,B
-Springfield,Minors,,Riverside,Minors,,2025-01-10,12:30,C{% endif %}</pre>
+Springfield,Minors,,Riverside,Minors,,2025-01-10,12:30,C{% elif model_type == 'umpire_assignments' %}umpire_email,game_date,game_time,game_field,position,worked_status
+tom.anderson@email.com,2025-01-10,8:00,A,plate,assigned
+emily.martinez@email.com,2025-01-10,8:00,A,base,assigned
+tom.anderson@email.com,2025-01-10,12:30,C,solo,assigned{% endif %}</pre>
     </div>
 </div>
 {% endblock %}

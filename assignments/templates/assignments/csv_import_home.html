@@ -61,6 +61,14 @@
             Optional: home_team_name, away_team_name (needed if multiple teams per level)</p>
             <a href="{% url 'import_csv' 'games' %}" class="btn" style="width: 100%; text-align: center;">Import Games</a>
         </div>
+        
+        <div class="card" style="border: 2px solid #3498db;">
+            <h4>7. Umpire Assignments</h4>
+            <p style="font-size: 0.9rem; color: #666;">Import umpire-to-game assignments.</p>
+            <p style="font-size: 0.85rem; color: #888;">Required: umpire_email, game_date, game_time, game_field, position<br>
+            Optional: worked_status</p>
+            <a href="{% url 'import_csv' 'umpire_assignments' %}" class="btn" style="width: 100%; text-align: center;">Import Umpire Assignments</a>
+        </div>
     </div>
 </div>
 
@@ -72,7 +80,8 @@
         <li><strong>Towns</strong> - Import third (referenced by Teams)</li>
         <li><strong>Teams</strong> - Import fourth (referenced by Games)</li>
         <li><strong>Umpires</strong> - Can be imported anytime</li>
-        <li><strong>Games</strong> - Import last (requires Teams to exist)</li>
+        <li><strong>Games</strong> - Import sixth (requires Teams to exist)</li>
+        <li><strong>Umpire Assignments</strong> - Import last (requires both Games and Umpires to exist)</li>
     </ol>
     
     <h4 style="margin-top: 1.5rem;">Sample Files</h4>

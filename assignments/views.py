@@ -409,6 +409,8 @@ def import_csv_data(request, model_type):
                     count = import_umpires(reader)
                 elif model_type == 'games':
                     count = import_games(reader)
+                elif model_type == 'umpire_assignments':
+                    count = import_umpire_assignments(reader)
                 else:
                     messages.error(request, 'Invalid import type')
                     return redirect('csv_import_home')
@@ -553,6 +555,49 @@ def import_umpires(reader):
             count += 1
         except Exception as e:
             raise ValueError(f"Row {row_num}: Error importing umpire '{row.get('first_name', '')} {row.get('last_name', '')}' - {str(e)}")
+    return count
+
+
+def import_umpire_assignments(reader):
+    count = 0
+    row_num = 1
+    for row in reader:
+        row_num += 1
+        try:
+            try:
+                umpire = Umpire.objects.get(email=row['umpire_email'])
+            except Umpire.DoesNotExist:
+                raise ValueError(f"Umpire with email '{row['umpire_email']}' not found")
+
+            try:
+                game = Game.objects.get(
+                    date=row['game_date'],
+                    time=row['game_time'],
+                    field=row['game_field']
+                )
+            except Game.DoesNotExist:
+                raise ValueError(f"Game on {row['game_date']} at {row['game_time']} on field {row['game_field']} not found")
+
+            position = row.get('position', 'solo')
+            if position not in ['plate', 'base', 'solo']:
+                raise ValueError(f"Invalid position '{position}'. Must be plate, base, or solo")
+
+            worked_status = row.get('worked_status', 'assigned')
+            if worked_status not in ['assigned', 'worked', 'no_show', 'cancelled']:
+                worked_status = 'assigned'
+
+            UmpireAssignment.objects.update_or_create(
+                game=game,
+                umpire=umpire,
+                defaults={
+                    'position': position,
+                    'worked_status': worked_status,
+                }
+            )
+            count += 1
+        except Exception as e:
+            desc = f"{row.get('umpire_email', '')} -> {row.get('game_date', '')} {row.get('game_time', '')} Field {row.get('game_field', '')}"
+            raise ValueError(f"Row {row_num}: Error importing assignment '{desc}' - {str(e)}")
     return count
 
 

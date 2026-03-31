@@ -1,14 +1,35 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: umpire_assigner
+      POSTGRES_USER: umpire
+      POSTGRES_PASSWORD: umpire_local_pass
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umpire -d umpire_assigner"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   web:
     build: .
     ports:
       - "8000:8000"
-    volumes:
-      - ./db.sqlite3:/app/db.sqlite3
-      - ./staticfiles:/app/staticfiles
     environment:
       - DEBUG=True
-      - SECRET_KEY=your-production-secret-key-here
-    command: gunicorn --bind 0.0.0.0:8000 --workers 3 umpire_assigner.wsgi:application
+      - SECRET_KEY=dev-only-secret-key-not-for-production
+      - DATABASE_URL=postgres://umpire:umpire_local_pass@db:5432/umpire_assigner
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_PASSWORD=admin123
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
