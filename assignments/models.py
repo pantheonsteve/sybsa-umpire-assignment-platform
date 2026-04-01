@@ -123,6 +123,7 @@ class Game(models.Model):
     time = models.CharField(max_length=10, choices=TIME_CHOICES)
     field = models.CharField(max_length=1, choices=FIELD_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
+    archived = models.BooleanField(default=False)
     
     class Meta:
         verbose_name = "Game"
@@ -263,7 +264,7 @@ class UmpireAvailability(models.Model):
     def get_game_dates_with_slots(cls):
         """Get all unique game dates and their time slots."""
         from django.db.models import Count
-        games = Game.objects.values('date', 'time').annotate(count=Count('id')).order_by('date', 'time')
+        games = Game.objects.filter(archived=False).values('date', 'time').annotate(count=Count('id')).order_by('date', 'time')
         
         # Define the proper time order
         time_order = ['8:00', '10:15', '12:30', '2:45']

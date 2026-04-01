@@ -193,11 +193,22 @@ class UmpireAssignmentInline(admin.TabularInline):
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin, CSVImportMixin):
-    list_display = ('date', 'time', 'field', 'home_team', 'away_team')
-    list_filter = ('date', 'time', 'field')
+    list_display = ('date', 'time', 'field', 'home_team', 'away_team', 'archived')
+    list_filter = ('archived', 'date', 'time', 'field')
     date_hierarchy = 'date'
     search_fields = ('home_team__town__name', 'away_team__town__name')
     inlines = [UmpireAssignmentInline]
+    actions = ['archive_games', 'unarchive_games']
+    
+    def archive_games(self, request, queryset):
+        updated = queryset.update(archived=True)
+        messages.success(request, f'{updated} game(s) archived')
+    archive_games.short_description = "Archive selected games"
+    
+    def unarchive_games(self, request, queryset):
+        updated = queryset.update(archived=False)
+        messages.success(request, f'{updated} game(s) unarchived')
+    unarchive_games.short_description = "Unarchive selected games"
     
     def process_csv_data(self, reader):
         count = 0

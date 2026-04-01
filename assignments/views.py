@@ -55,7 +55,8 @@ def weekly_schedule(request):
     # Add time_order annotation for proper chronological sorting
     games = Game.objects.filter(
         date__gte=start_of_week,
-        date__lte=end_of_week
+        date__lte=end_of_week,
+        archived=False
     ).annotate(
         time_order=Case(
             When(time='8:00', then=1),
@@ -264,7 +265,8 @@ def umpire_payments(request):
     # Calculate weekly payment totals
     # Get all games with assignments to determine week ranges
     games_with_assignments = Game.objects.filter(
-        assignments__isnull=False
+        assignments__isnull=False,
+        archived=False
     ).distinct().order_by('date')
     
     weekly_totals = []
@@ -321,7 +323,8 @@ def umpire_payments(request):
             # Count games and assignments for this week
             games_count = Game.objects.filter(
                 date__gte=week_start,
-                date__lte=week_end
+                date__lte=week_end,
+                archived=False
             ).count()
             
             # Count all assignments (worked + assigned)
@@ -706,7 +709,7 @@ def unassigned_games(request):
     
     # Start with games that have fewer than 2 umpires assigned
     # Add time_order annotation for proper chronological sorting
-    games = Game.objects.annotate(
+    games = Game.objects.filter(archived=False).annotate(
         umpire_count=Count('assignments'),
         time_order=Case(
             When(time='8:00', then=1),
@@ -811,7 +814,7 @@ def unassigned_games(request):
     # Note: removed the global available_umpires since each game now has its own list
     
     # Get statistics
-    total_games = Game.objects.count()
+    total_games = Game.objects.filter(archived=False).count()
     total_unassigned = len(fully_unassigned)
     total_partially = len(partially_assigned)
     total_fully_assigned = total_games - total_unassigned - total_partially
@@ -939,7 +942,7 @@ def bulk_create_games(request):
                         errors.append(f"Game {i+1}: Home and away teams cannot be the same")
                         continue
                     
-                    # Check if game already exists
+                    # Check if game already exists (including archived)
                     if Game.objects.filter(
                         date=dates[i],
                         time=times[i],
@@ -1737,7 +1740,7 @@ def umpire_schedule(request):
     all_umpires = Umpire.objects.all().order_by('last_name', 'first_name')
     
     # Get unique dates for filter dropdown
-    all_dates = Game.objects.values_list('date', flat=True).distinct().order_by('date')
+    all_dates = Game.objects.filter(archived=False).values_list('date', flat=True).distinct().order_by('date')
     
     context = {
         'umpire_schedules': umpire_schedules,
