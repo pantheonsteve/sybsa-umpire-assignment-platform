@@ -57,6 +57,7 @@ class Team(models.Model):
         ('Minors', 'Minors'),
         ('Majors', 'Majors'),
         ('Softball', 'Softball'),
+        ('Junior', 'Junior'),
     ]
     
     town = models.ForeignKey(Town, on_delete=models.CASCADE)
