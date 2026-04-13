@@ -56,6 +56,7 @@ class Team(models.Model):
         ('AAA', 'AAA'),
         ('Minors', 'Minors'),
         ('Majors', 'Majors'),
+        ('Softball', 'Softball'),
     ]
     
     town = models.ForeignKey(Town, on_delete=models.CASCADE)
@@ -100,6 +101,7 @@ class Game(models.Model):
         ('10:15', '10:15 AM'),
         ('12:30', '12:30 PM'),
         ('2:45', '2:45 PM'),
+        ('4:00', '4:00 PM'),
         ('5:30', '5:30 PM'),
         ('6:00', '6:00 PM'),
     ]
@@ -110,6 +112,7 @@ class Game(models.Model):
         ('C', 'Field C'),
         ('D', 'Field D'),
         ('E', 'Field E'),
+        ('Ames', 'Ames St.'),
     ]
     
     STATUS_CHOICES = [
