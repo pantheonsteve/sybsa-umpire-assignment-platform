@@ -114,6 +114,7 @@ class Game(models.Model):
         ('D', 'Field D'),
         ('E', 'Field E'),
         ('Ames', 'Ames St.'),
+        ('Sharon Middle School', 'Sharon Middle School'),
     ]
     
     STATUS_CHOICES = [
@@ -127,7 +128,7 @@ class Game(models.Model):
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_games')
     date = models.DateField()
     time = models.CharField(max_length=10, choices=TIME_CHOICES)
-    field = models.CharField(max_length=10, choices=FIELD_CHOICES)
+    field = models.CharField(max_length=50, choices=FIELD_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
     archived = models.BooleanField(default=False)
     
