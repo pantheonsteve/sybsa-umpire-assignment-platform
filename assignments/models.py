@@ -100,6 +100,8 @@ class Game(models.Model):
         ('10:15', '10:15 AM'),
         ('12:30', '12:30 PM'),
         ('2:45', '2:45 PM'),
+        ('5:30', '5:30 PM'),
+        ('6:00', '6:00 PM'),
     ]
     
     FIELD_CHOICES = [
@@ -137,7 +139,7 @@ class Game(models.Model):
     @property
     def time_sort_order(self):
         """Return a sortable time value for chronological ordering."""
-        time_order = {'8:00': 1, '10:15': 2, '12:30': 3, '2:45': 4}
+        time_order = {'8:00': 1, '10:15': 2, '12:30': 3, '2:45': 4, '5:30': 5, '6:00': 6}
         return time_order.get(self.time, 99)
 
 
@@ -239,6 +241,8 @@ class UmpireAvailability(models.Model):
         ('10:15', '10:15 AM'),
         ('12:30', '12:30 PM'),
         ('2:45', '2:45 PM'),
+        ('5:30', '5:30 PM'),
+        ('6:00', '6:00 PM'),
         ('all', 'All Time Slots'),
     ]
     
@@ -267,7 +271,7 @@ class UmpireAvailability(models.Model):
         games = Game.objects.filter(archived=False).values('date', 'time').annotate(count=Count('id')).order_by('date', 'time')
         
         # Define the proper time order
-        time_order = ['8:00', '10:15', '12:30', '2:45']
+        time_order = ['8:00', '10:15', '12:30', '2:45', '5:30', '6:00']
         
         dates_with_slots = {}
         for game in games:

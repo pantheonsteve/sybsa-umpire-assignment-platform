@@ -63,6 +63,8 @@ def weekly_schedule(request):
             When(time='10:15', then=2),
             When(time='12:30', then=3),
             When(time='2:45', then=4),
+            When(time='5:30', then=5),
+            When(time='6:00', then=6),
             default=99,
             output_field=IntegerField()
         )
@@ -716,6 +718,8 @@ def unassigned_games(request):
             When(time='10:15', then=2),
             When(time='12:30', then=3),
             When(time='2:45', then=4),
+            When(time='5:30', then=5),
+            When(time='6:00', then=6),
             default=99,
             output_field=IntegerField()
         )
@@ -1685,6 +1689,8 @@ def umpire_schedule(request):
             When(game__time='10:15', then=2),
             When(game__time='12:30', then=3),
             When(game__time='2:45', then=4),
+            When(game__time='5:30', then=5),
+            When(game__time='6:00', then=6),
             default=99,
             output_field=IntegerField()
         )
