@@ -11,6 +11,37 @@
     <a href="{% url 'game_signup' %}" class="btn btn-secondary">Not you? Switch umpire</a>
 </div>
 
+{% if assigned_games %}
+<div class="card" style="background-color: #cce5ff; border-color: #b8daff; margin-bottom: 1.5rem;">
+    <h3 style="color: #004085; margin-bottom: 1rem;">📋 Your Current Assignments</h3>
+    <p style="color: #004085; margin-bottom: 1rem;">
+        You are already assigned to the following games. These cannot be changed through this form.
+    </p>
+    <table class="signup-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Field</th>
+                <th>Matchup</th>
+                <th>Position</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in assigned_games %}
+            <tr>
+                <td style="white-space: nowrap; font-weight: 600;">{{ entry.game.date|date:"D, M d, Y" }}</td>
+                <td style="white-space: nowrap;">{{ entry.time_display }}</td>
+                <td style="white-space: nowrap;">{{ entry.field_display }}</td>
+                <td>{{ entry.game.home_team }} vs {{ entry.game.away_team }}</td>
+                <td><span class="badge assigned">{{ entry.position_display }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
 <div class="card" style="background-color: #f8f9fa; margin-bottom: 1.5rem;">
     <p style="margin: 0;">
         For each game below, select whether you are <strong>Available</strong>, <strong>Preferred</strong> (your top choice),
@@ -22,6 +53,7 @@
         <div><span class="legend-dot preferred">★</span> Preferred</div>
         <div><span class="legend-dot unavailable">✗</span> Unavailable</div>
         <div><span class="legend-dot none">–</span> Not Set</div>
+        <div><span class="legend-dot assigned">A</span> Already Assigned</div>
     </div>
 </div>
 
@@ -42,7 +74,7 @@
             </thead>
             <tbody>
                 {% for entry in games_with_status %}
-                <tr>
+                <tr {% if entry.is_assigned %}class="assigned-row"{% endif %}>
                     <td style="white-space: nowrap; font-weight: 600;">
                         {{ entry.game.date|date:"D, M d, Y" }}
                     </td>
@@ -50,14 +82,20 @@
                     <td style="white-space: nowrap;">{{ entry.field_display }}</td>
                     <td>{{ entry.game.home_team }} vs {{ entry.game.away_team }}</td>
                     <td class="avail-cell">
-                        <select name="{{ entry.field_name }}"
-                                class="avail-select"
-                                data-current="{{ entry.status }}">
-                            <option value="none"       {% if entry.status == 'none' %}selected{% endif %}>– Not Set</option>
-                            <option value="available"  {% if entry.status == 'available' %}selected{% endif %}>✓ Available</option>
-                            <option value="preferred"  {% if entry.status == 'preferred' %}selected{% endif %}>★ Preferred</option>
-                            <option value="unavailable"{% if entry.status == 'unavailable' %}selected{% endif %}>✗ Unavailable</option>
-                        </select>
+                        {% if entry.is_assigned %}
+                            <span class="badge assigned" style="min-width: 120px; display: inline-block; text-align: center;">
+                                ✓ Assigned
+                            </span>
+                        {% else %}
+                            <select name="{{ entry.field_name }}"
+                                    class="avail-select"
+                                    data-current="{{ entry.status }}">
+                                <option value="none"       {% if entry.status == 'none' %}selected{% endif %}>– Not Set</option>
+                                <option value="available"  {% if entry.status == 'available' %}selected{% endif %}>✓ Available</option>
+                                <option value="preferred"  {% if entry.status == 'preferred' %}selected{% endif %}>★ Preferred</option>
+                                <option value="unavailable"{% if entry.status == 'unavailable' %}selected{% endif %}>✗ Unavailable</option>
+                            </select>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -111,6 +149,10 @@
     background-color: #f0f8ff;
 }
 
+.assigned-row {
+    background-color: #e8f4fd !important;
+}
+
 .avail-cell {
     text-align: center;
 }
@@ -147,6 +189,18 @@
 .legend-dot.preferred   { background-color: #fff3cd; color: #856404; }
 .legend-dot.unavailable { background-color: #f8d7da; color: #721c24; }
 .legend-dot.none        { background-color: #e9ecef; color: #6c757d; }
+.legend-dot.assigned    { background-color: #cce5ff; color: #004085; }
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge.assigned { background-color: #cce5ff; color: #004085; }
 </style>
 
 <script>

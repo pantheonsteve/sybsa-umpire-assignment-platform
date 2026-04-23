@@ -1879,8 +1879,42 @@ def umpire_availability_signup(request):
             Q(home_team__level='Junior') | Q(away_team__level='Junior')
         )
 
+    # Fetch current assignments for this umpire on upcoming games
+    assigned_game_ids = set(
+        UmpireAssignment.objects.filter(
+            umpire=umpire,
+            game__date__gte=today,
+            game__archived=False,
+            worked_status='assigned',
+        ).values_list('game_id', flat=True)
+    )
+
+    # Fetch assignment details for the "already assigned" section at the top
+    assigned_games_qs = UmpireAssignment.objects.filter(
+        umpire=umpire,
+        game__date__gte=today,
+        game__archived=False,
+        worked_status='assigned',
+    ).select_related('game', 'game__home_team', 'game__away_team').order_by('game__date', 'game__time', 'game__field')
+
+    time_display = dict(Game.TIME_CHOICES)
+    field_display = dict(Game.FIELD_CHOICES)
+
+    assigned_games = []
+    for assignment in assigned_games_qs:
+        g = assignment.game
+        assigned_games.append({
+            'game': g,
+            'time_display': time_display.get(g.time, g.time),
+            'field_display': field_display.get(g.field, g.field),
+            'position_display': assignment.get_position_display(),
+        })
+
     if request.method == 'POST':
         for game in games_qs:
+            # Never overwrite an existing assignment via the availability form
+            if game.pk in assigned_game_ids:
+                continue
             field_name = f"avail_{game.pk}"
             status = request.POST.get(field_name)
             if status in ('available', 'preferred', 'unavailable'):
@@ -1903,20 +1937,21 @@ def umpire_availability_signup(request):
     avail_map = {(a.date, a.time_slot): a.status for a in existing}
 
     games_with_status = []
-    time_display = dict(Game.TIME_CHOICES)
-    field_display = dict(Game.FIELD_CHOICES)
     for game in games_qs:
+        is_assigned = game.pk in assigned_game_ids
         games_with_status.append({
             'game': game,
             'field_name': f"avail_{game.pk}",
             'time_display': time_display.get(game.time, game.time),
             'field_display': field_display.get(game.field, game.field),
-            'status': avail_map.get((game.date, game.time), 'none'),
+            'status': 'assigned' if is_assigned else avail_map.get((game.date, game.time), 'none'),
+            'is_assigned': is_assigned,
         })
 
     context = {
         'umpire': umpire,
         'games_with_status': games_with_status,
+        'assigned_games': assigned_games,
     }
     return render(request, 'assignments/umpire_availability_signup.html', context)
 
