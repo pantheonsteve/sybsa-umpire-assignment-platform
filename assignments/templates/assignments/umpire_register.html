@@ -1,0 +1,117 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}New Umpire Registration - SYBSA Umpire Assigner{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 480px; margin: 3rem auto;">
+    <div class="card">
+        <h2 style="text-align: center; margin-bottom: 0.5rem;">New Umpire Registration</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 2rem;">
+            Fill in your details below to register as an umpire and sign up for games.
+        </p>
+
+        {% if already_registered_email %}
+        <div class="card" style="background-color: #fff3cd; border-color: #ffc107; color: #856404; margin-bottom: 1.5rem;">
+            <strong>Already registered!</strong>
+            <p style="margin: 0.5rem 0 0;">
+                The email <strong>{{ already_registered_email }}</strong> is already in our system.
+                Use the button below to sign up for games with that email.
+            </p>
+            <div style="margin-top: 1rem;">
+                <a href="{% url 'game_signup' %}" class="btn" style="background-color: #27ae60;">
+                    Sign Up For Games
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if errors %}
+        <div class="card" style="background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; margin-bottom: 1.5rem;">
+            {% for error in errors %}
+            <p style="margin: 0 0 0.25rem;">{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not already_registered_email %}
+        <form method="post">
+            {% csrf_token %}
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label for="first_name" style="display: block; margin-bottom: 0.4rem; font-weight: 600;">First Name *</label>
+                    <input type="text" name="first_name" id="first_name" required autofocus
+                           value="{{ form_data.first_name|default:'' }}"
+                           style="width: 100%; padding: 0.65rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label for="last_name" style="display: block; margin-bottom: 0.4rem; font-weight: 600;">Last Name *</label>
+                    <input type="text" name="last_name" id="last_name" required
+                           value="{{ form_data.last_name|default:'' }}"
+                           style="width: 100%; padding: 0.65rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="email" style="display: block; margin-bottom: 0.4rem; font-weight: 600;">Email Address *</label>
+                <input type="email" name="email" id="email" required
+                       value="{{ form_data.email|default:'' }}"
+                       placeholder="you@example.com"
+                       style="width: 100%; padding: 0.65rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="phone" style="display: block; margin-bottom: 0.4rem; font-weight: 600;">Phone Number *</label>
+                <input type="tel" name="phone" id="phone" required
+                       value="{{ form_data.phone|default:'' }}"
+                       placeholder="+1 (555) 555-5555"
+                       style="width: 100%; padding: 0.65rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;">
+            </div>
+
+            <div style="border-top: 1px solid #dee2e6; padding-top: 1.25rem; margin-bottom: 1.25rem;">
+                <p style="font-weight: 600; margin-bottom: 0.75rem; color: #495057;">Umpire Status</p>
+
+                <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; margin-bottom: 0.75rem;">
+                    <input type="checkbox" name="adult" id="adult"
+                           {% if form_data.adult == 'on' %}checked{% endif %}
+                           style="margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0;">
+                    <span>
+                        <strong>Adult umpire</strong><br>
+                        <small style="color: #666;">I am 18 years or older</small>
+                    </span>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer;">
+                    <input type="checkbox" name="patched" id="patched"
+                           {% if form_data.patched == 'on' %}checked{% endif %}
+                           style="margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0;">
+                    <span>
+                        <strong>Certified / patched umpire</strong><br>
+                        <small style="color: #666;">I have completed umpire certification</small>
+                    </span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; padding: 0.75rem; font-size: 1.05rem; background-color: #17a2b8;">
+                Register &amp; View Games
+            </button>
+        </form>
+        {% endif %}
+
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0; text-align: center; color: #666;">
+            <p style="margin-bottom: 0.5rem;">Already registered?</p>
+            <a href="{% url 'game_signup' %}" class="btn btn-secondary">Sign Up For Games</a>
+        </div>
+    </div>
+</div>
+
+<style>
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus {
+    outline: none;
+    border-color: #17a2b8;
+    box-shadow: 0 0 0 2px rgba(23, 162, 184, 0.2);
+}
+</style>
+{% endblock %}

@@ -17,6 +17,7 @@ urlpatterns = [
     path('logout/', views.user_logout, name='logout'),
     path('register/', views.register, name='register'),
     # Umpire self-service game signup (no Django auth required)
+    path('umpire-register/', views.umpire_register, name='umpire_register'),
     path('game-signup/', views.game_signup, name='game_signup'),
     path('umpire-availability/', views.umpire_availability_signup, name='umpire_availability_signup'),
     path('umpire-availability/confirmation/', views.umpire_availability_confirmation, name='umpire_availability_confirmation'),

@@ -1114,45 +1114,64 @@ def edit_game(request, game_id):
     
     # Get data for form
     teams = Team.objects.select_related('town').order_by('town__name', 'level', 'name')
-    
-    # Get only available umpires for this game's date and time
-    # First get all umpires
-    all_umpires = Umpire.objects.all().order_by('last_name', 'first_name')
-    
-    # Filter to only those who are available and not already assigned at this time
-    available_umpires = []
-    for umpire in all_umpires:
-        # Check if umpire has set availability for this date/time
-        availability = UmpireAvailability.objects.filter(
-            umpire=umpire,
-            date=game.date,
-            time_slot__in=[game.time, 'all']  # Check both specific time and "all day"
-        ).first()
-        
-        # Only include umpire if they've explicitly set availability as available or preferred
-        if availability and availability.status in ['available', 'preferred']:
-            # Check if umpire is already assigned to another game at this time
-            # (excluding the current game being edited)
-            # Skip this check for Assigner umpires who can handle multiple games
-            if not umpire.is_assigner:
-                conflicting_assignment = UmpireAssignment.objects.filter(
-                    umpire=umpire,
-                    game__date=game.date,
-                    game__time=game.time
-                ).exclude(game=game).exists()
-                
-                if conflicting_assignment:
-                    continue
-            
-            available_umpires.append(umpire)
-    
-    umpires = available_umpires
+
+    # Build availability map for this game's date + time
+    avail_records = UmpireAvailability.objects.filter(
+        date=game.date,
+        time_slot__in=[game.time, 'all'],
+    ).values('umpire_id', 'status')
+    avail_map = {r['umpire_id']: r['status'] for r in avail_records}
+
+    # IDs of umpires assigned to a DIFFERENT game at the same date/time
+    conflicting_ids = set(
+        UmpireAssignment.objects.filter(
+            game__date=game.date,
+            game__time=game.time,
+        ).exclude(game=game).values_list('umpire_id', flat=True)
+    )
+
+    # IDs of umpires already assigned to THIS game (always keep in dropdown)
+    this_game_umpire_ids = set(
+        game.assignments.values_list('umpire_id', flat=True)
+    )
+
+    # Build annotated list: all umpires with their availability status
+    # Exclude umpires conflicted at another game (unless is_assigner or assigned here)
+    STATUS_ORDER = {'preferred': 0, 'available': 1, 'none': 2, 'unavailable': 3}
+    STATUS_LABEL = {
+        'preferred':   '★ Preferred',
+        'available':   '✓ Available',
+        'none':        '– No Response',
+        'unavailable': '✗ Unavailable',
+    }
+
+    all_umpires_qs = Umpire.objects.all().order_by('last_name', 'first_name')
+    umpires = []
+    for u in all_umpires_qs:
+        # Skip conflicted umpires unless they are assigners or assigned to this game
+        if u.pk in conflicting_ids and not u.is_assigner and u.pk not in this_game_umpire_ids:
+            continue
+        status = avail_map.get(u.pk, 'none')
+        umpires.append({
+            'id': u.pk,
+            'name': str(u),
+            'patched': u.patched,
+            'adult': u.adult,
+            'status': status,
+            'status_label': STATUS_LABEL[status],
+            'sort_key': STATUS_ORDER[status],
+            'conflicted': u.pk in conflicting_ids and not u.is_assigner,
+        })
+
+    # Sort: preferred → available → no response → unavailable; alpha within each group
+    umpires.sort(key=lambda u: (u['sort_key'], u['name']))
+
     time_choices = Game.TIME_CHOICES
     field_choices = Game.FIELD_CHOICES
-    
+
     # Get current assignments
     assignments = list(game.assignments.select_related('umpire').all())
-    
+
     # Prepare assignment data for template
     assignment_data = []
     for assignment in assignments:
@@ -1162,7 +1181,7 @@ def edit_game(request, game_id):
             'position': assignment.position,
             'umpire_name': str(assignment.umpire)
         })
-    
+
     context = {
         'game': game,
         'teams': teams,
@@ -1173,7 +1192,7 @@ def edit_game(request, game_id):
         'referrer': request.META.get('HTTP_REFERER', '/'),
         'week_param': week_param
     }
-    
+
     return render(request, 'assignments/edit_game.html', context)
 
 
@@ -1840,6 +1859,58 @@ def update_assignment_pay(request, assignment_id):
             return JsonResponse({'success': False, 'error': 'Assignment not found'})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def umpire_register(request):
+    """Self-service umpire registration (no Django auth / password required)."""
+    already_registered_email = None
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name  = request.POST.get('last_name', '').strip()
+        email      = request.POST.get('email', '').strip().lower()
+        phone      = request.POST.get('phone', '').strip()
+        adult      = request.POST.get('adult') == 'on'
+        patched    = request.POST.get('patched') == 'on'
+
+        # Check for already-registered email first so we can give a helpful message
+        if Umpire.objects.filter(email__iexact=email).exists():
+            already_registered_email = email
+            return render(request, 'assignments/umpire_register.html', {
+                'form_data': request.POST,
+                'already_registered_email': already_registered_email,
+            })
+
+        errors = []
+        if not all([first_name, last_name, email, phone]):
+            errors.append('First name, last name, email, and phone are all required.')
+
+        if errors:
+            return render(request, 'assignments/umpire_register.html', {
+                'form_data': request.POST,
+                'errors': errors,
+            })
+
+        try:
+            umpire = Umpire.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone=phone,
+                adult=adult,
+                patched=patched,
+            )
+            # Log them straight into the session so they can set availability immediately
+            request.session['signup_umpire_id'] = umpire.pk
+            return redirect('umpire_availability_signup')
+
+        except Exception as e:
+            return render(request, 'assignments/umpire_register.html', {
+                'form_data': request.POST,
+                'errors': [f'Registration failed: {e}'],
+            })
+
+    return render(request, 'assignments/umpire_register.html', {})
 
 
 def game_signup(request):

@@ -1,0 +1,27 @@
+{% comment %}
+Renders grouped <option> elements for the umpire assignment dropdowns.
+Expects:
+  - umpires   — list of dicts from edit_game view (sorted by sort_key)
+  - selected_id — pk of the currently selected umpire (may be None / falsy)
+
+Groups: Preferred / Available / No Response / Unavailable
+{% endcomment %}
+{% regroup umpires by status as status_groups %}
+{% for group in status_groups %}
+    {% if group.grouper == 'preferred' %}
+    <optgroup label="★ Preferred — signed up">
+    {% elif group.grouper == 'available' %}
+    <optgroup label="✓ Available — signed up">
+    {% elif group.grouper == 'unavailable' %}
+    <optgroup label="✗ Unavailable">
+    {% else %}
+    <optgroup label="– No Response">
+    {% endif %}
+    {% for umpire in group.list %}
+        <option value="{{ umpire.id }}"
+                {% if selected_id and selected_id == umpire.id %}selected{% endif %}>
+            {{ umpire.name }}{% if umpire.patched %} [P]{% endif %}{% if umpire.adult %} [A]{% endif %} — {{ umpire.status_label }}
+        </option>
+    {% endfor %}
+    </optgroup>
+{% endfor %}

@@ -72,7 +72,7 @@
         </div>
         
         <h3>Umpire Assignments</h3>
-        
+
         <div id="umpire-assignments">
             {% if assignments %}
                 {% for assignment in assignments %}
@@ -80,14 +80,7 @@
                     <input type="hidden" name="assignment_id[]" value="{{ assignment.id }}">
                     <select name="umpire_id[]" class="form-input">
                         <option value="">-- Remove Assignment --</option>
-                        {% for umpire in umpires %}
-                            <option value="{{ umpire.id }}" {% if assignment.umpire_id == umpire.id %}selected{% endif %}>
-                                {{ umpire }}
-                                {% if umpire.patched %}[P]{% endif %}
-                                {% if umpire.adult %}[A]{% endif %}
-                                (Available)
-                            </option>
-                        {% endfor %}
+                        {% include "assignments/_umpire_options.html" with selected_id=assignment.umpire_id %}
                     </select>
                     <select name="position[]" class="form-input">
                         <option value="">-- Select Position --</option>
@@ -103,14 +96,7 @@
                     <input type="hidden" name="assignment_id[]" value="new">
                     <select name="umpire_id[]" class="form-input">
                         <option value="">-- Select Umpire --</option>
-                        {% for umpire in umpires %}
-                            <option value="{{ umpire.id }}">
-                                {{ umpire }}
-                                {% if umpire.patched %}[P]{% endif %}
-                                {% if umpire.adult %}[A]{% endif %}
-                                (Available)
-                            </option>
-                        {% endfor %}
+                        {% include "assignments/_umpire_options.html" with selected_id=None %}
                     </select>
                     <select name="position[]" class="form-input">
                         <option value="">-- Select Position --</option>
@@ -136,6 +122,11 @@
     </form>
 </div>
 
+<!-- Hidden select used as a template source for dynamically-added assignment rows -->
+<select id="umpire-options-template" style="display:none;" aria-hidden="true">
+    {% include "assignments/_umpire_options.html" with selected_id=None %}
+</select>
+
 <div class="card" style="background-color: #f8f9fa; margin-top: 1rem;">
     <h4>Assignment Guidelines</h4>
     <ul>
@@ -143,6 +134,7 @@
         <li>If assigning 2 umpires, one must be plate and one must be base</li>
         <li>Pay rates are calculated automatically based on position and patched status</li>
         <li>[P] = Patched Umpire | [A] = Adult Umpire</li>
+        <li>★ Preferred / ✓ Available = umpire signed up for this slot &nbsp;|&nbsp; – No Response = no availability set &nbsp;|&nbsp; ✗ Unavailable = umpire is unavailable</li>
     </ul>
 </div>
 
@@ -167,6 +159,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const assignmentsDiv = document.getElementById('umpire-assignments');
     const addBtn = document.getElementById('add-assignment');
     
+    // Grab the pre-rendered options from the hidden template select
+    const umpireOptionsHTML = document.getElementById('umpire-options-template').innerHTML;
+
     // Template for new assignment row
     function createAssignmentRow() {
         const row = document.createElement('div');
@@ -177,14 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" name="assignment_id[]" value="new">
             <select name="umpire_id[]" class="form-input">
                 <option value="">-- Select Umpire --</option>
-                {% for umpire in umpires %}
-                    <option value="{{ umpire.id }}">
-                        {{ umpire }}
-                        {% if umpire.patched %}[P]{% endif %}
-                        {% if umpire.adult %}[A]{% endif %}
-                        (Available)
-                    </option>
-                {% endfor %}
+                ${umpireOptionsHTML}
             </select>
             <select name="position[]" class="form-input">
                 <option value="">-- Select Position --</option>
