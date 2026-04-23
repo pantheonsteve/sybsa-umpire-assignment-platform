@@ -16,6 +16,10 @@ urlpatterns = [
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
     path('register/', views.register, name='register'),
+    # Umpire self-service game signup (no Django auth required)
+    path('game-signup/', views.game_signup, name='game_signup'),
+    path('umpire-availability/', views.umpire_availability_signup, name='umpire_availability_signup'),
+    path('umpire-availability/confirmation/', views.umpire_availability_confirmation, name='umpire_availability_confirmation'),
     # Umpire portal
     path('umpire/dashboard/', views.umpire_dashboard, name='umpire_dashboard'),
     path('umpire/availability/', views.manage_availability, name='manage_availability'),

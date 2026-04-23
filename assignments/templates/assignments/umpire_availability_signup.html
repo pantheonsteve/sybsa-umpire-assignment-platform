@@ -1,0 +1,179 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Game Availability - {{ umpire.first_name }} {{ umpire.last_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h2 style="margin-bottom: 0.25rem;">Game Availability</h2>
+        <p style="color: #666; margin: 0;">{{ umpire.first_name }} {{ umpire.last_name }}</p>
+    </div>
+    <a href="{% url 'game_signup' %}" class="btn btn-secondary">Not you? Switch umpire</a>
+</div>
+
+<div class="card" style="background-color: #f8f9fa; margin-bottom: 1.5rem;">
+    <p style="margin: 0;">
+        For each game below, select whether you are <strong>Available</strong>, <strong>Preferred</strong> (your top choice),
+        <strong>Unavailable</strong>, or leave it as <strong>Not Set</strong>.
+        When you're done, click <strong>Save My Availability</strong> at the bottom.
+    </p>
+    <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 1rem;">
+        <div><span class="legend-dot available">✓</span> Available</div>
+        <div><span class="legend-dot preferred">★</span> Preferred</div>
+        <div><span class="legend-dot unavailable">✗</span> Unavailable</div>
+        <div><span class="legend-dot none">–</span> Not Set</div>
+    </div>
+</div>
+
+{% if games_with_status %}
+<form method="post" id="availability-form">
+    {% csrf_token %}
+
+    <div class="card" style="overflow-x: auto; padding: 0;">
+        <table class="signup-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Field</th>
+                    <th>Matchup</th>
+                    <th>My Availability</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in games_with_status %}
+                <tr>
+                    <td style="white-space: nowrap; font-weight: 600;">
+                        {{ entry.game.date|date:"D, M d, Y" }}
+                    </td>
+                    <td style="white-space: nowrap;">{{ entry.time_display }}</td>
+                    <td style="white-space: nowrap;">{{ entry.field_display }}</td>
+                    <td>{{ entry.game.home_team }} vs {{ entry.game.away_team }}</td>
+                    <td class="avail-cell">
+                        <select name="{{ entry.field_name }}"
+                                class="avail-select"
+                                data-current="{{ entry.status }}">
+                            <option value="none"       {% if entry.status == 'none' %}selected{% endif %}>– Not Set</option>
+                            <option value="available"  {% if entry.status == 'available' %}selected{% endif %}>✓ Available</option>
+                            <option value="preferred"  {% if entry.status == 'preferred' %}selected{% endif %}>★ Preferred</option>
+                            <option value="unavailable"{% if entry.status == 'unavailable' %}selected{% endif %}>✗ Unavailable</option>
+                        </select>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <button type="submit" class="btn" style="background-color: #27ae60; font-size: 1rem; padding: 0.75rem 2rem;">
+            Save My Availability
+        </button>
+        <div style="margin-left: auto; display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="setAll('available')">Set All Available</button>
+            <button type="button" class="btn btn-secondary" onclick="setAll('unavailable')">Set All Unavailable</button>
+        </div>
+    </div>
+</form>
+
+{% else %}
+<div class="card" style="background-color: #fff3cd; border-color: #ffc107;">
+    <h3 style="color: #856404;">No Upcoming Games Scheduled</h3>
+    <p style="color: #856404;">
+        There are no upcoming games in the system at this time.
+        Please check back later or contact <a href="mailto:stevebresnick@gmail.com">stevebresnick@gmail.com</a>.
+    </p>
+</div>
+{% endif %}
+
+<style>
+.signup-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.signup-table th,
+.signup-table td {
+    border: 1px solid #dee2e6;
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.signup-table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.signup-table tbody tr:hover {
+    background-color: #f0f8ff;
+}
+
+.avail-cell {
+    text-align: center;
+}
+
+.avail-select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    min-width: 130px;
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.avail-select:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    text-align: center;
+    margin-right: 0.25rem;
+}
+
+.legend-dot.available   { background-color: #d4edda; color: #155724; }
+.legend-dot.preferred   { background-color: #fff3cd; color: #856404; }
+.legend-dot.unavailable { background-color: #f8d7da; color: #721c24; }
+.legend-dot.none        { background-color: #e9ecef; color: #6c757d; }
+</style>
+
+<script>
+function colorSelect(sel) {
+    const colors = {
+        available:   { bg: '#d4edda', color: '#155724' },
+        preferred:   { bg: '#fff3cd', color: '#856404' },
+        unavailable: { bg: '#f8d7da', color: '#721c24' },
+        none:        { bg: '#e9ecef', color: '#6c757d' },
+    };
+    const c = colors[sel.value] || colors.none;
+    sel.style.backgroundColor = c.bg;
+    sel.style.color = c.color;
+}
+
+function setAll(status) {
+    document.querySelectorAll('.avail-select').forEach(sel => {
+        sel.value = status;
+        colorSelect(sel);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.avail-select').forEach(sel => {
+        colorSelect(sel);
+        sel.addEventListener('change', function () { colorSelect(this); });
+    });
+});
+</script>
+{% endblock %}

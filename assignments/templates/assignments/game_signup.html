@@ -1,0 +1,47 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Sign Up For Games - SYBSA Umpire Assigner{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 440px; margin: 4rem auto;">
+    <div class="card">
+        <h2 style="text-align: center; margin-bottom: 0.5rem;">Sign Up For Games</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 2rem;">
+            Enter your email address to view available games and set your availability.
+        </p>
+
+        {% if error %}
+        <div class="card" style="background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; margin-bottom: 1.5rem;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div style="margin-bottom: 2rem;">
+                <label for="email" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email Address</label>
+                <input type="email" name="email" id="email" required autofocus
+                       placeholder="you@example.com"
+                       style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;">
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; padding: 0.75rem; font-size: 1.1rem; background-color: #27ae60;">
+                Continue
+            </button>
+        </form>
+
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0; text-align: center; color: #666;">
+            <p style="margin-bottom: 0.5rem;">Are you the league administrator?</p>
+            <a href="{% url 'login' %}" class="btn btn-secondary">Admin Login</a>
+        </div>
+    </div>
+</div>
+
+<style>
+input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+</style>
+{% endblock %}

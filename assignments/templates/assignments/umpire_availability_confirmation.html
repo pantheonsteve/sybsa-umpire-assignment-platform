@@ -1,0 +1,120 @@
+{% extends 'assignments/base.html' %}
+
+{% block title %}Availability Confirmed - {{ umpire.first_name }} {{ umpire.last_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 700px; margin: 0 auto;">
+
+    <div class="card" style="background-color: #d4edda; border-color: #c3e6cb; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="font-size: 2.5rem; line-height: 1;">✓</div>
+            <div>
+                <h2 style="margin: 0 0 0.25rem 0; color: #155724;">Availability Saved!</h2>
+                <p style="margin: 0; color: #155724;">Your availability has been recorded. The Umpire Assigner will follow up with you.</p>
+            </div>
+        </div>
+    </div>
+
+    {% if confirmed_games %}
+    <div class="card">
+        <h3 style="margin-bottom: 1rem;">
+            {{ umpire.first_name }} {{ umpire.last_name }} is available for the following games:
+        </h3>
+
+        <table class="confirm-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Field</th>
+                    <th>Matchup</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in confirmed_games %}
+                <tr>
+                    <td style="white-space: nowrap; font-weight: 600;">
+                        {{ entry.date|date:"D, M d, Y" }}
+                    </td>
+                    <td style="white-space: nowrap;">{{ entry.time_display }}</td>
+                    <td style="white-space: nowrap;">{{ entry.field_display }}</td>
+                    <td>{{ entry.home_team }} vs {{ entry.away_team }}</td>
+                    <td>
+                        {% if entry.status == 'preferred' %}
+                            <span class="badge preferred">★ Preferred</span>
+                        {% else %}
+                            <span class="badge available">✓ Available</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card" style="background-color: #fff3cd; border-color: #ffc107;">
+        <h3 style="color: #856404; margin-bottom: 0.5rem;">No Games Selected</h3>
+        <p style="color: #856404; margin: 0;">
+            You did not mark yourself as available for any games.
+            If this was a mistake, you can go back and update your availability.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="card" style="background-color: #f8f9fa; margin-top: 1rem;">
+        <p style="margin: 0; color: #555;">
+            <strong>Please note:</strong> This does not mean you are assigned to these games.
+            The Umpire Assigner will review availability and follow up with you directly.
+        </p>
+    </div>
+
+    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{% url 'umpire_availability_signup' %}" class="btn" style="background-color: #27ae60;">
+            Update My Availability
+        </a>
+        <a href="{% url 'weekly_schedule' %}" class="btn btn-secondary">
+            View Schedule
+        </a>
+    </div>
+
+</div>
+
+<style>
+.confirm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.confirm-table th,
+.confirm-table td {
+    border: 1px solid #dee2e6;
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.confirm-table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.confirm-table tbody tr:hover {
+    background-color: #f0f8ff;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge.available   { background-color: #d4edda; color: #155724; }
+.badge.preferred   { background-color: #fff3cd; color: #856404; }
+</style>
+{% endblock %}

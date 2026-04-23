@@ -1840,3 +1840,132 @@ def update_assignment_pay(request, assignment_id):
             return JsonResponse({'success': False, 'error': 'Assignment not found'})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def game_signup(request):
+    """Email-based umpire lookup — no Django auth required."""
+    error = None
+
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        try:
+            umpire = Umpire.objects.get(email__iexact=email)
+            request.session['signup_umpire_id'] = umpire.pk
+            return redirect('umpire_availability_signup')
+        except Umpire.DoesNotExist:
+            error = 'No Umpire found. Contact stevebresnick@gmail.com'
+
+    return render(request, 'assignments/game_signup.html', {'error': error})
+
+
+def umpire_availability_signup(request):
+    """Self-service per-game availability form (session-based, no Django auth)."""
+    umpire_id = request.session.get('signup_umpire_id')
+    if not umpire_id:
+        return redirect('game_signup')
+
+    umpire = get_object_or_404(Umpire, pk=umpire_id)
+    today = date.today()
+
+    # Build the game queryset — exclude Junior games for non-patched umpires
+    games_qs = Game.objects.filter(
+        archived=False,
+        date__gte=today,
+        status='scheduled',
+    ).select_related('home_team', 'away_team').order_by('date', 'time', 'field')
+
+    if not umpire.patched:
+        games_qs = games_qs.exclude(
+            Q(home_team__level='Junior') | Q(away_team__level='Junior')
+        )
+
+    if request.method == 'POST':
+        for game in games_qs:
+            field_name = f"avail_{game.pk}"
+            status = request.POST.get(field_name)
+            if status in ('available', 'preferred', 'unavailable'):
+                UmpireAvailability.objects.update_or_create(
+                    umpire=umpire,
+                    date=game.date,
+                    time_slot=game.time,
+                    defaults={'status': status},
+                )
+            elif status == 'none':
+                UmpireAvailability.objects.filter(
+                    umpire=umpire,
+                    date=game.date,
+                    time_slot=game.time,
+                ).delete()
+        return redirect('umpire_availability_confirmation')
+
+    # Load existing availability keyed by (date, time_slot)
+    existing = UmpireAvailability.objects.filter(umpire=umpire, date__gte=today)
+    avail_map = {(a.date, a.time_slot): a.status for a in existing}
+
+    games_with_status = []
+    time_display = dict(Game.TIME_CHOICES)
+    field_display = dict(Game.FIELD_CHOICES)
+    for game in games_qs:
+        games_with_status.append({
+            'game': game,
+            'field_name': f"avail_{game.pk}",
+            'time_display': time_display.get(game.time, game.time),
+            'field_display': field_display.get(game.field, game.field),
+            'status': avail_map.get((game.date, game.time), 'none'),
+        })
+
+    context = {
+        'umpire': umpire,
+        'games_with_status': games_with_status,
+    }
+    return render(request, 'assignments/umpire_availability_signup.html', context)
+
+
+def umpire_availability_confirmation(request):
+    """Show confirmation of saved availability after signup form submission."""
+    umpire_id = request.session.get('signup_umpire_id')
+    if not umpire_id:
+        return redirect('game_signup')
+
+    umpire = get_object_or_404(Umpire, pk=umpire_id)
+    today = date.today()
+
+    # Gather availability records marked available or preferred
+    avail_records = UmpireAvailability.objects.filter(
+        umpire=umpire,
+        date__gte=today,
+        status__in=('available', 'preferred'),
+    ).order_by('date', 'time_slot')
+
+    # For each record find the matching game(s) so we can show game details
+    time_display = dict(Game.TIME_CHOICES)
+    field_display = dict(Game.FIELD_CHOICES)
+
+    confirmed_games = []
+    for avail in avail_records:
+        games = Game.objects.filter(
+            archived=False,
+            date=avail.date,
+            time=avail.time_slot,
+        ).select_related('home_team', 'away_team')
+
+        if not umpire.patched:
+            games = games.exclude(
+                Q(home_team__level='Junior') | Q(away_team__level='Junior')
+            )
+
+        for game in games:
+            confirmed_games.append({
+                'date': game.date,
+                'time_display': time_display.get(game.time, game.time),
+                'field_display': field_display.get(game.field, game.field),
+                'home_team': game.home_team,
+                'away_team': game.away_team,
+                'status': avail.status,
+            })
+
+    context = {
+        'umpire': umpire,
+        'confirmed_games': confirmed_games,
+    }
+    return render(request, 'assignments/umpire_availability_confirmation.html', context)
