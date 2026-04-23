@@ -1067,6 +1067,17 @@ def edit_game(request, game_id):
                 
                 for i in range(len(umpire_ids)):
                     if umpire_ids[i] and positions[i]:
+                        umpire = Umpire.objects.get(pk=umpire_ids[i])
+                        if not umpire.is_assigner:
+                            conflict = UmpireAssignment.objects.filter(
+                                umpire=umpire,
+                                game__date=game.date,
+                                game__time=game.time,
+                            ).exclude(game=game).first()
+                            if conflict:
+                                messages.error(request, f'{umpire} is already assigned to another game at this time ({conflict.game})')
+                                return redirect(f'/games/{game_id}/edit/?week={week_param}')
+
                         if assignment_ids[i] and assignment_ids[i] != 'new':
                             # Update existing assignment
                             assignment_id = int(assignment_ids[i])

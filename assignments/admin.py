@@ -161,8 +161,8 @@ class TeamAdmin(admin.ModelAdmin, CSVImportMixin):
 
 @admin.register(Umpire)
 class UmpireAdmin(admin.ModelAdmin, CSVImportMixin):
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'adult', 'patched')
-    list_filter = ('adult', 'patched')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'adult', 'patched', 'is_assigner')
+    list_filter = ('adult', 'patched', 'is_assigner')
     search_fields = ('first_name', 'last_name', 'email')
     
     def process_csv_data(self, reader):
