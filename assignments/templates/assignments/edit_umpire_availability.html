@@ -37,7 +37,7 @@
                 {% for date_data in game_dates_with_slots %}
                 <tr>
                     <td style="font-weight: 600; white-space: nowrap;">
-                        {{ date_data.date|date:"M d, Y" }}
+                        {{ date_data.date|date:"D, M d, Y" }}
                     </td>
                     {% for slot in date_data.slots %}
                     <td class="availability-cell">
