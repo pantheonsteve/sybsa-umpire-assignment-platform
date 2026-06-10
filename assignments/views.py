@@ -128,7 +128,7 @@ def weekly_schedule(request):
             if game.date not in games_by_date:
                 games_by_date[game.date] = []
             games_by_date[game.date].append(game)
-        games_display = games_by_date
+        games_display = dict(sorted(games_by_date.items()))
     else:
         games_display = list(games)
     
