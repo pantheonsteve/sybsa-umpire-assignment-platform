@@ -98,7 +98,7 @@ Sample CSV files are provided in the `sample_data/` directory. To import:
 - town, level (AAA/Minors/Majors), name (optional), coach_email (optional)
 
 **Games** (`games.csv`):
-- home_town, home_level, away_town, away_level, date (YYYY-MM-DD), time (8:00/10:15/12:30/2:45), field (A/B/C/D/E)
+- home_town, home_level, away_town, away_level, date (YYYY-MM-DD), time (8:00/10:00/10:15/12:00/12:30/14:00/14:45/16:00/17:30/18:00/19:30/20:00), field (A/B/C/D/E)
 
 ## Pay Rates Configuration
 

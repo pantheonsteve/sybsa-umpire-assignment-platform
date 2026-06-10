@@ -99,12 +99,17 @@ class Umpire(models.Model):
 class Game(models.Model):
     TIME_CHOICES = [
         ('8:00', '8:00 AM'),
+        ('10:00', '10:00 AM'),
         ('10:15', '10:15 AM'),
+        ('12:00', '12:00 PM'),
         ('12:30', '12:30 PM'),
-        ('2:45', '2:45 PM'),
-        ('4:00', '4:00 PM'),
-        ('5:30', '5:30 PM'),
-        ('6:00', '6:00 PM'),
+        ('14:00', '2:00 PM'),
+        ('14:45', '2:45 PM'),
+        ('16:00', '4:00 PM'),
+        ('17:30', '5:30 PM'),
+        ('18:00', '6:00 PM'),
+        ('19:30', '7:30 PM'),
+        ('20:00', '8:00 PM'),
     ]
     
     FIELD_CHOICES = [
@@ -141,10 +146,20 @@ class Game(models.Model):
     def __str__(self):
         return f"{self.home_team} vs {self.away_team} - {self.date} {self.time}"
     
+    @classmethod
+    def time_order_annotation(cls, field_name='time'):
+        """Return a Case expression for chronological time sorting."""
+        from django.db.models import Case, When, IntegerField
+        return Case(
+            *[When(**{field_name: value}, then=i + 1) for i, (value, _) in enumerate(cls.TIME_CHOICES)],
+            default=99,
+            output_field=IntegerField(),
+        )
+
     @property
     def time_sort_order(self):
         """Return a sortable time value for chronological ordering."""
-        time_order = {'8:00': 1, '10:15': 2, '12:30': 3, '2:45': 4, '5:30': 5, '6:00': 6}
+        time_order = {value: i + 1 for i, (value, _) in enumerate(self.TIME_CHOICES)}
         return time_order.get(self.time, 99)
 
 
@@ -243,11 +258,17 @@ class UmpireAvailability(models.Model):
     
     TIME_SLOT_CHOICES = [
         ('8:00', '8:00 AM'),
+        ('10:00', '10:00 AM'),
         ('10:15', '10:15 AM'),
+        ('12:00', '12:00 PM'),
         ('12:30', '12:30 PM'),
-        ('2:45', '2:45 PM'),
-        ('5:30', '5:30 PM'),
-        ('6:00', '6:00 PM'),
+        ('14:00', '2:00 PM'),
+        ('14:45', '2:45 PM'),
+        ('16:00', '4:00 PM'),
+        ('17:30', '5:30 PM'),
+        ('18:00', '6:00 PM'),
+        ('19:30', '7:30 PM'),
+        ('20:00', '8:00 PM'),
         ('all', 'All Time Slots'),
     ]
     
@@ -275,8 +296,7 @@ class UmpireAvailability(models.Model):
         from django.db.models import Count
         games = Game.objects.filter(archived=False).values('date', 'time').annotate(count=Count('id')).order_by('date', 'time')
         
-        # Define the proper time order
-        time_order = ['8:00', '10:15', '12:30', '2:45', '5:30', '6:00']
+        time_order = [value for value, _ in Game.TIME_CHOICES]
         
         dates_with_slots = {}
         for game in games:

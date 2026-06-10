@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from django.db.models import Sum, Q, Count, Case, When, IntegerField
+from django.db.models import Sum, Q, Count
 from django.db import transaction
 from django.http import JsonResponse
 from datetime import datetime, timedelta, date
@@ -58,16 +58,7 @@ def weekly_schedule(request):
         date__lte=end_of_week,
         archived=False
     ).annotate(
-        time_order=Case(
-            When(time='8:00', then=1),
-            When(time='10:15', then=2),
-            When(time='12:30', then=3),
-            When(time='2:45', then=4),
-            When(time='5:30', then=5),
-            When(time='6:00', then=6),
-            default=99,
-            output_field=IntegerField()
-        )
+        time_order=Game.time_order_annotation()
     ).select_related(
         'home_team', 'away_team', 'home_team__town', 'away_team__town',
         'home_team__coach', 'away_team__coach'
@@ -713,16 +704,7 @@ def unassigned_games(request):
     # Add time_order annotation for proper chronological sorting
     games = Game.objects.filter(archived=False).annotate(
         umpire_count=Count('assignments'),
-        time_order=Case(
-            When(time='8:00', then=1),
-            When(time='10:15', then=2),
-            When(time='12:30', then=3),
-            When(time='2:45', then=4),
-            When(time='5:30', then=5),
-            When(time='6:00', then=6),
-            default=99,
-            output_field=IntegerField()
-        )
+        time_order=Game.time_order_annotation()
     ).filter(
         Q(umpire_count=0) | Q(umpire_count=1)
     ).select_related(
@@ -1445,6 +1427,7 @@ def manage_availability(request):
         'game_dates_with_slots': game_dates_with_slots,
         'availability_choices': UmpireAvailability.AVAILABILITY_CHOICES,
         'time_slot_choices': [c for c in UmpireAvailability.TIME_SLOT_CHOICES if c[0] != 'all'],
+        'time_slot_display_choices': UmpireAvailability.TIME_SLOT_CHOICES,
         'today': today,
     }
     
@@ -1714,16 +1697,7 @@ def umpire_schedule(request):
     assignments_query = UmpireAssignment.objects.select_related(
         'game', 'umpire', 'game__home_team', 'game__away_team'
     ).annotate(
-        time_order=Case(
-            When(game__time='8:00', then=1),
-            When(game__time='10:15', then=2),
-            When(game__time='12:30', then=3),
-            When(game__time='2:45', then=4),
-            When(game__time='5:30', then=5),
-            When(game__time='6:00', then=6),
-            default=99,
-            output_field=IntegerField()
-        )
+        time_order=Game.time_order_annotation('game__time')
     )
     
     # Apply filters
