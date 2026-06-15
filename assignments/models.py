@@ -58,6 +58,14 @@ class Team(models.Model):
         ('Majors', 'Majors'),
         ('Softball', 'Softball'),
         ('Junior', 'Junior'),
+        ('9u', '9u'),
+        ('10u', '10u'),
+        ('11u', '11u'),
+        ('12u', '12u'),
+        ('13u', '13u'),
+        ('14u', '14u'),
+        ('15u', '15u'),
+        ('16u', '16u'),
     ]
     
     town = models.ForeignKey(Town, on_delete=models.CASCADE)
