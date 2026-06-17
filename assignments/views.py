@@ -169,7 +169,62 @@ def umpire_payments(request):
     """Display umpire payment information."""
     from datetime import timedelta
     from django.db.models import Q
-    
+    from .utils import get_pay_rate
+
+    # Date range filter for earnings summary
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+    date_range_summary = None
+    date_range_error = None
+
+    if start_date_str or end_date_str:
+        if not start_date_str or not end_date_str:
+            date_range_error = 'Please select both a start date and an end date.'
+        else:
+            try:
+                range_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                range_end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                if range_start > range_end:
+                    date_range_error = 'Start date must be on or before the end date.'
+                else:
+                    range_assignments = UmpireAssignment.objects.filter(
+                        game__date__gte=range_start,
+                        game__date__lte=range_end,
+                        worked_status__in=['assigned', 'worked'],
+                    ).select_related(
+                        'umpire', 'game', 'game__home_team', 'game__away_team'
+                    ).order_by('umpire__last_name', 'umpire__first_name', 'game__date', 'game__time')
+
+                    umpire_summaries = {}
+                    for assignment in range_assignments:
+                        umpire = assignment.umpire
+                        if umpire.id not in umpire_summaries:
+                            umpire_summaries[umpire.id] = {
+                                'umpire': umpire,
+                                'assignments': [],
+                                'games_count': 0,
+                                'total_earnings': Decimal('0.00'),
+                            }
+                        summary = umpire_summaries[umpire.id]
+                        summary['assignments'].append(assignment)
+                        summary['games_count'] += 1
+                        summary['total_earnings'] += assignment.pay_amount
+
+                    umpire_list = sorted(
+                        umpire_summaries.values(),
+                        key=lambda item: (item['umpire'].last_name, item['umpire'].first_name),
+                    )
+                    date_range_summary = {
+                        'start': range_start,
+                        'end': range_end,
+                        'umpires': umpire_list,
+                        'total_earnings': sum(u['total_earnings'] for u in umpire_list),
+                        'total_games': sum(u['games_count'] for u in umpire_list),
+                        'umpire_count': len(umpire_list),
+                    }
+            except ValueError:
+                date_range_error = 'Invalid date format.'
+
     # Get all umpires with their assignments and payments
     umpires = Umpire.objects.all().order_by('last_name', 'first_name')
     
@@ -184,7 +239,6 @@ def umpire_payments(request):
         # Calculate base pay for each assignment (even if not yet worked)
         projected_total = 0
         for assignment in projected_assignments:
-            from .utils import get_pay_rate
             projected_total += get_pay_rate(assignment.umpire.patched, assignment.position)
         
         # Calculate actual owed from worked assignments only
@@ -229,7 +283,6 @@ def umpire_payments(request):
             if assignment.worked_status == 'worked':
                 assignments_by_date[date]['total_earned'] += assignment.pay_amount
             elif assignment.worked_status == 'assigned':
-                from .utils import get_pay_rate
                 projected_pay = get_pay_rate(assignment.umpire.patched, assignment.position)
                 assignments_by_date[date]['total_projected'] += projected_pay
         
@@ -296,7 +349,6 @@ def umpire_payments(request):
             # Calculate projected amount
             week_projected = 0
             for assignment in week_projected_assignments:
-                from .utils import get_pay_rate
                 week_projected += get_pay_rate(assignment.umpire.patched, assignment.position)
             
             # Total expected for the week (actual + projected)
@@ -362,6 +414,10 @@ def umpire_payments(request):
         'grand_total_paid': grand_total_paid,
         'grand_total_unpaid_actual': grand_total_unpaid_actual,
         'grand_total_unpaid_projected': grand_total_unpaid_projected,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+        'date_range_summary': date_range_summary,
+        'date_range_error': date_range_error,
     }
     
     return render(request, 'assignments/umpire_payments.html', context)

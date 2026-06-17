@@ -39,7 +39,224 @@
     background-color: #95a5a6;
     color: white;
 }
+
+.date-range-filter {
+    background-color: #f8f9fa;
+    margin-bottom: 1.5rem;
+}
+
+.date-range-filter form {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.date-range-filter label {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.date-range-filter input[type="date"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.date-range-summary {
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    color: white;
+    margin-bottom: 1.5rem;
+}
+
+.date-range-summary h3,
+.date-range-summary h4 {
+    color: white;
+}
+
+.date-range-summary .summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.date-range-summary .stat-box {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.date-range-summary .stat-box .value {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin: 0.25rem 0 0;
+}
+
+.date-range-summary table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.date-range-summary th,
+.date-range-summary td {
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: white;
+}
+
+.date-range-summary th {
+    text-align: left;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.date-range-summary .text-right {
+    text-align: right;
+}
+
+.date-range-summary .umpire-detail-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.date-range-summary .umpire-detail-card table th,
+.date-range-summary .umpire-detail-card table td {
+    font-size: 0.9rem;
+}
 </style>
+
+<!-- Date Range Filter -->
+<div class="card date-range-filter">
+    <h3 style="margin-bottom: 1rem;">Date Range Earnings Report</h3>
+    <p style="color: #6c757d; margin-bottom: 1rem; font-size: 0.9rem;">
+        Select a date range to see each scheduled umpire and what they will earn for games in that period.
+    </p>
+    <form method="get">
+        <div style="flex: 1; min-width: 180px;">
+            <label for="start_date">Start Date</label>
+            <input type="date" name="start_date" id="start_date" value="{{ start_date }}">
+        </div>
+        <div style="flex: 1; min-width: 180px;">
+            <label for="end_date">End Date</label>
+            <input type="date" name="end_date" id="end_date" value="{{ end_date }}">
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn">Show Earnings</button>
+            <a href="{% url 'umpire_payments' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+    {% if date_range_error %}
+    <p style="color: #e74c3c; margin-top: 1rem; margin-bottom: 0;">{{ date_range_error }}</p>
+    {% endif %}
+</div>
+
+{% if date_range_summary %}
+<div class="card date-range-summary">
+    <h3>Earnings: {{ date_range_summary.start|date:"M d, Y" }} – {{ date_range_summary.end|date:"M d, Y" }}</h3>
+
+    <div class="summary-stats">
+        <div class="stat-box">
+            <div>Umpires</div>
+            <p class="value">{{ date_range_summary.umpire_count }}</p>
+        </div>
+        <div class="stat-box">
+            <div>Assignments</div>
+            <p class="value">{{ date_range_summary.total_games }}</p>
+        </div>
+        <div class="stat-box">
+            <div>Total Earnings</div>
+            <p class="value">${{ date_range_summary.total_earnings|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    {% if date_range_summary.umpires %}
+    <table>
+        <thead>
+            <tr>
+                <th>Umpire</th>
+                <th style="text-align: center;">Games</th>
+                <th class="text-right">Total Earnings</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in date_range_summary.umpires %}
+            <tr>
+                <td>
+                    {{ item.umpire }}
+                    {% if item.umpire.patched %}
+                        <span class="badge badge-success">Patched</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">{{ item.games_count }}</td>
+                <td class="text-right" style="font-weight: bold; font-size: 1.1rem;">
+                    ${{ item.total_earnings|floatformat:2 }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="font-weight: bold; border-top: 2px solid rgba(255,255,255,0.3);">
+                <td>Total</td>
+                <td style="text-align: center;">{{ date_range_summary.total_games }}</td>
+                <td class="text-right" style="font-size: 1.2rem;">
+                    ${{ date_range_summary.total_earnings|floatformat:2 }}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <h4 style="margin-top: 1.5rem;">Assignment Details</h4>
+    {% for item in date_range_summary.umpires %}
+    <div class="umpire-detail-card">
+        <h4 style="margin-bottom: 0.75rem;">
+            {{ item.umpire }}
+            <span style="float: right;">${{ item.total_earnings|floatformat:2 }}</span>
+        </h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Field</th>
+                    <th>Game</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th class="text-right">Pay</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in item.assignments %}
+                <tr>
+                    <td>{{ assignment.game.date|date:"M d, Y" }}</td>
+                    <td>{{ assignment.game.get_time_display }}</td>
+                    <td>{{ assignment.game.get_field_display }}</td>
+                    <td>{{ assignment.game.away_team }} vs {{ assignment.game.home_team }}</td>
+                    <td>{{ assignment.get_position_display }}</td>
+                    <td>
+                        {% if assignment.worked_status == 'worked' %}
+                            <span class="badge badge-success">Worked</span>
+                        {% else %}
+                            <span class="badge badge-info">Scheduled</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">${{ assignment.pay_amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p style="margin: 0;">No umpire assignments found for this date range.</p>
+    {% endif %}
+</div>
+{% endif %}
 
 <!-- Weekly Payment Summary Grid -->
 <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
