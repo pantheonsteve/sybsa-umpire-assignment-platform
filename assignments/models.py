@@ -58,6 +58,7 @@ class Team(models.Model):
         ('Majors', 'Majors'),
         ('Softball', 'Softball'),
         ('Junior', 'Junior'),
+        ('8u', '8u'),
         ('9u', '9u'),
         ('10u', '10u'),
         ('11u', '11u'),
