@@ -1,6 +1,32 @@
+import csv
+import io
 import re
 from decimal import Decimal
 from .models import PayRate
+
+
+def strip_csv_reader(reader):
+    """Strip leading/trailing whitespace from CSV column headers and cell values."""
+    if reader.fieldnames:
+        reader.fieldnames = [
+            name.strip() if isinstance(name, str) else name
+            for name in reader.fieldnames
+        ]
+
+    for row in reader:
+        yield {
+            (key.strip() if isinstance(key, str) else key): (
+                value.strip() if isinstance(value, str) else value
+            )
+            for key, value in row.items()
+        }
+
+
+def read_csv_file(csv_file):
+    """Decode an uploaded CSV file and return a row iterator with stripped values."""
+    decoded_file = csv_file.read().decode('utf-8')
+    io_string = io.StringIO(decoded_file)
+    return strip_csv_reader(csv.DictReader(io_string))
 
 
 def format_phone_number(phone):

@@ -3,8 +3,7 @@ from django.urls import path
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db import transaction
-import csv
-import io
+from .utils import read_csv_file
 from .models import (
     LeagueAdmin, Coach, Town, Team, Umpire, Game, 
     UmpireAssignment, UmpirePayment, PayRate
@@ -33,9 +32,7 @@ class CSVImportMixin:
                 return redirect('..')
             
             try:
-                decoded_file = csv_file.read().decode('utf-8')
-                io_string = io.StringIO(decoded_file)
-                reader = csv.DictReader(io_string)
+                reader = read_csv_file(csv_file)
                 
                 with transaction.atomic():
                     count = self.process_csv_data(reader)

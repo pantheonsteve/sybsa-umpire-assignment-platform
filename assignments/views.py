@@ -9,13 +9,11 @@ from django.http import JsonResponse
 from datetime import datetime, timedelta, date
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-import csv
-import io
 from .models import (
     Game, UmpireAssignment, Umpire, UmpirePayment,
     LeagueAdmin, Coach, Town, Team, PayRate, UmpireAvailability
 )
-from .utils import format_phone_number
+from .utils import format_phone_number, read_csv_file
 
 
 def admin_required(view_func):
@@ -444,9 +442,7 @@ def import_csv_data(request, model_type):
             return redirect('csv_import_home')
         
         try:
-            decoded_file = csv_file.read().decode('utf-8')
-            io_string = io.StringIO(decoded_file)
-            reader = csv.DictReader(io_string)
+            reader = read_csv_file(csv_file)
             
             with transaction.atomic():
                 if model_type == 'league_admins':
